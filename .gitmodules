@@ -1,0 +1,6 @@
+[submodule "riscv-ovpsim"]
+	path = riscv-ovpsim
+	url = https://github.com/riscv/riscv-ovpsim.git
+[submodule "riscv-gnu-toolchain"]
+	path = riscv-gnu-toolchain
+	url = https://github.com/riscv/riscv-gnu-toolchain
