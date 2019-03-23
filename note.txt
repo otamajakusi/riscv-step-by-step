@@ -3,6 +3,14 @@ M mode and U mode
 single of userland
 context switch with timer interrupt
 and those build system
+M mode elf loader
+
+physical:
+8000_0000 - 8010_0000 (M mode)
+8020_0000 - ... (U mode)
+
+U -> (ecall or timerintr) -> M -> (mret) -> U
+(write and exit ecall)
 
 phase2:
 multiple of userland with MMU by M mode

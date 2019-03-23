@@ -1,0 +1,1 @@
+LDFLAGS += -L$(MAKEFILE_DIR) -Tu.ld

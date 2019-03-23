@@ -7,6 +7,7 @@ CFLAGS = -mcmodel=medany -march=rv32imac -mabi=ilp32 \
 	     -Wextra -ffunction-sections -fdata-sections -Os
 LDFLAGS = -L$(MAKEFILE_DIR)../riscv-probe/build/lib/rv32imac -lfemto \
 		  -Wl,--gc-sections -Wl,--nmagic -nostartfiles -nostdlib -nostdinc -static
+INCLUDE = -I$(MAKEFILE_DIR)../riscv-probe/libfemto/include
 
 objs  = $(patsubst %S,%o,$(filter %.S,$(srcs)))
 objs += $(patsubst %c,%o,$(filter %.c,$(srcs)))
@@ -21,7 +22,7 @@ $(target): $(objs)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 %.o : %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $<
 
 .PHONY: clean
 clean:
