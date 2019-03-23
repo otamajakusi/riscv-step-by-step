@@ -5,13 +5,11 @@ TODO: summalize march and mabi
 ## setup
 git submodule update --init riscv-gnu-toolchain
 
-git submodule update --init ovpsim
+TODO: binutils
 
 git submodule update --init riscv-qemu
 
 (https://github.com/riscv/riscv-qemu/wiki)
-
-TODO: binutils
 
 https://github.com/michaeljclark/riscv-probe.git
 

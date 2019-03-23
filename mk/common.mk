@@ -3,10 +3,10 @@ MAKEFILE_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 CC = riscv32-unknown-elf-gcc
 LD = riscv32-unknown-elf-gcc
 
-CFLAGS = -Wextra -ffunction-sections -fdata-sections -Os -march=rv32imac -mabi=ilp32
+CFLAGS = -mcmodel=medany -march=rv32imac -mabi=ilp32 \
+	     -Wextra -ffunction-sections -fdata-sections -Os
 LDFLAGS = -L$(MAKEFILE_DIR)../riscv-probe/build/lib/rv32imac -lfemto \
-          -L$(MAKEFILE_DIR)../riscv-probe/env/qemu-sifive_u -Tdefault.lds \
-		  -Wl,--gc-sections -nostartfiles -nostdlib -nostdinc -static
+		  -Wl,--gc-sections -Wl,--nmagic -nostartfiles -nostdlib -nostdinc -static
 
 objs  = $(patsubst %S,%o,$(filter %.S,$(srcs)))
 objs += $(patsubst %c,%o,$(filter %.c,$(srcs)))
