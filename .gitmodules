@@ -1,6 +1,15 @@
-[submodule "riscv-ovpsim"]
-	path = riscv-ovpsim
-	url = https://github.com/riscv/riscv-ovpsim.git
 [submodule "riscv-gnu-toolchain"]
 	path = riscv-gnu-toolchain
 	url = https://github.com/riscv/riscv-gnu-toolchain
+[submodule "riscv-isa-sim"]
+	path = riscv-isa-sim
+	url = https://github.com/riscv/riscv-isa-sim.git
+[submodule "riscv-pk"]
+	path = riscv-pk
+	url = https://github.com/riscv/riscv-pk.git
+[submodule "riscv-qemu"]
+	path = riscv-qemu
+	url = https://github.com/riscv/riscv-qemu.git
+[submodule "riscv-probe"]
+	path = riscv-probe
+	url = https://github.com/michaeljclark/riscv-probe.git

@@ -1,0 +1,12 @@
+phase1:
+M mode and U mode
+single of userland
+context switch with timer interrupt
+and those build system
+
+phase2:
+multiple of userland with MMU by M mode
+
+phase3:
+M mode, S mode and U mode (M is only used for setup)
+multiple of userland with MMU by S mode
