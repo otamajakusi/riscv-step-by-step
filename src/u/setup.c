@@ -1,4 +1,5 @@
 #include "femto.h"
+#include "syscall.h"
 
 static int console_getchar()
 {
@@ -7,7 +8,7 @@ static int console_getchar()
 
 static int console_putchar(int ch)
 {
-    asm volatile ("ecall");
+    __write(0, &ch, 1);
 }
 
 console_device_t console_user = {
