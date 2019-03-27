@@ -23,13 +23,15 @@
  * PLIC: Platform-Level Interrupt Controller
  */
 
+static volatile int g_counter = 10;
+
 static void handle_timer_intr()
 {
     volatile uintptr_t *mtimecmp = (uintptr_t*)(CLINT_BASE + SIFIVE_TIMECMP_BASE);
     volatile uintptr_t *mtime = (uintptr_t*)(CLINT_BASE + SIFIVE_TIME_BASE);
     // 1. mtimecmp set 0x100000 (?sec?)
     // See. riscv-privileged-v1.10.pdf 3.1.15 Machine Timer Register
-    uint32_t mtimecmp_incr = 0x100000;
+    uint32_t mtimecmp_incr = 0x1000000;
     uint64_t mtimecmp_next = (*(uint64_t*)mtimecmp) + mtimecmp_incr;
     uint32_t mtimecmp_lo = mtimecmp_next;
     uint32_t mtimecmp_hi = mtimecmp_next >> 32;
@@ -38,6 +40,8 @@ static void handle_timer_intr()
     *mtimecmp = mtimecmp_lo;
     // 2. CSR.IP.MTIP clear
     write_csr_enum(csr_mip, read_csr_enum(csr_mip) | MIP_MTIP);
+    printf("(%2d)%08x\n", g_counter, *mtime);
+    g_counter --;
 }
 
 static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
@@ -46,7 +50,7 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     if (mcause == cause_machine_ecall) {
         write_csr_enum(csr_mepc, mepc + 4);
     }
-    if (mcause & (1u << 31) && mcause == intr_m_timer) {
+    if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_intr();
     }
 }
@@ -72,8 +76,9 @@ int main() {
     // 4. CSR.MSTATUS.MTIP set
     write_csr_enum(csr_mstatus, read_csr_enum(csr_mstatus) | MSTATUS_MIE);
 
-    while (1) {
-    }
+    while (g_counter)
+        ;
+    printf("finished\n");
 
     return 0;
 }
