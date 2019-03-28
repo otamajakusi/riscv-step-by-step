@@ -23,7 +23,10 @@
  * PLIC: Platform-Level Interrupt Controller
  */
 
-static volatile int g_counter = 10;
+extern uintptr_t _binary_u_elf_start;
+extern int load_elf(void *dst, const void *src);
+
+static volatile int g_counter = 1;
 
 static void handle_timer_intr()
 {
@@ -49,9 +52,24 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     printf("mcause %08x, mepc %08x\n", mcause, mepc);
     if (mcause == cause_machine_ecall) {
         write_csr_enum(csr_mepc, mepc + 4);
-    }
+    } else
+    if (mcause == cause_user_ecall) {
+        if (regs[1] != 1) { // FIXME: currently write syscall only
+            printf("illegal syscall number %d\n", regs[1]);
+            for (int i = 0; i < 16; i ++) {
+              printf("[%d] %x\n", i, regs[i]);
+            }
+            exit(1);
+        }
+        char *c = (char*)regs[3];
+        printf("c %p (%x, %c(%x))\n", c, regs[3], regs[4], regs[4]);
+        putchar(*c);
+        write_csr_enum(csr_mepc, mepc + 4);
+    } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_intr();
+    } else {
+        exit(1);
     }
 }
 
@@ -79,6 +97,8 @@ int main() {
     while (g_counter)
         ;
     printf("finished\n");
+
+    load_elf(0, (void*)&_binary_u_elf_start);
 
     return 0;
 }

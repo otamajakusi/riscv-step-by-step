@@ -1,5 +1,4 @@
-#srcs  = crt.S main.c
-srcs  = main.c
+srcs  = main.c elfldr.c
 target = m.elf
 objs = u.elf.o
 include ../../mk/common.mk
