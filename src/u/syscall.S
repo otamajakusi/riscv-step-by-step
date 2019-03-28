@@ -1,13 +1,13 @@
-#include "syscall.h"
-
-# TODO: check if `t0` can be used.
 .section .text,"ax",@progbits
-.global __read
-__read:
-    li t0, SYSCALL_READ
-    ecall
-    
-.global __write
-__write:
-    li t0, SYSCALL_WRITE
+.global __syscall
+.global __syscall0
+.global __syscall1
+.global __syscall2
+.global __syscall3
+
+__syscall:
+__syscall0:
+__syscall1:
+__syscall2:
+__syscall3:
     ecall
