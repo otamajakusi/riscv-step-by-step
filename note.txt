@@ -18,3 +18,9 @@ multiple of userland with MMU by M mode
 phase3:
 M mode, S mode and U mode (M is only used for setup)
 multiple of userland with MMU by S mode
+
+### TODO
+libfemto/include/arch/riscv/machine.h
+-> removing div and mul
+-> trap .align fix
+-> printf `x / 10` optimize

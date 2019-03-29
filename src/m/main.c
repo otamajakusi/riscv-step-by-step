@@ -34,7 +34,7 @@ static void handle_timer_intr()
     volatile uintptr_t *mtime = (uintptr_t*)(CLINT_BASE + SIFIVE_TIME_BASE);
     // 1. mtimecmp set 0x100000 (?sec?)
     // See. riscv-privileged-v1.10.pdf 3.1.15 Machine Timer Register
-    uint32_t mtimecmp_incr = 0x1000000;
+    uint32_t mtimecmp_incr = 0x10000;
     uint64_t mtimecmp_next = (*(uint64_t*)mtimecmp) + mtimecmp_incr;
     uint32_t mtimecmp_lo = mtimecmp_next;
     uint32_t mtimecmp_hi = mtimecmp_next >> 32;
@@ -43,16 +43,15 @@ static void handle_timer_intr()
     *mtimecmp = mtimecmp_lo;
     // 2. CSR.IP.MTIP clear
     write_csr_enum(csr_mip, read_csr_enum(csr_mip) | MIP_MTIP);
-    printf("(%2d)%08x\n", g_counter, *mtime);
+    //printf("(%2d)%08x\n", g_counter, *mtime);
+    putchar('#');
     g_counter --;
 }
 
 static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
-    printf("mcause %08x, mepc %08x\n", mcause, mepc);
-    if (mcause == cause_machine_ecall) {
-        write_csr_enum(csr_mepc, mepc + 4);
-    } else
+    //printf("mpp %x\n", read_csr_enum(csr_mstatus) & MSTATUS_MPP);
+    //printf("mpp %x\n", read_csr_enum(csr_mstatus));
     if (mcause == cause_user_ecall) {
         if (regs[1] != 1) { // FIXME: currently write syscall only
             printf("illegal syscall number %d\n", regs[1]);
@@ -62,14 +61,25 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
             exit(1);
         }
         char *c = (char*)regs[3];
-        printf("c %p (%x, %c(%x))\n", c, regs[3], regs[4], regs[4]);
+        //printf("c %p (%x, %c(%x))\n", c, regs[3], regs[4], regs[4]);
         putchar(*c);
         write_csr_enum(csr_mepc, mepc + 4);
     } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_intr();
     } else {
-        exit(1);
+        const char *cause;
+        if (mcause & (1u << 31)) {
+            cause = riscv_intr_names[mcause & 0xf];
+        } else {
+            cause = riscv_excp_names[mcause & 0xf];
+        }
+        printf("mcause %s, mepc %08x\n", cause, mepc);
+        if (mcause == cause_machine_ecall) {
+            write_csr_enum(csr_mepc, mepc + 4);
+        } else {
+            exit(1);
+        }
     }
 }
 
@@ -94,9 +104,9 @@ int main() {
     // 4. CSR.MSTATUS.MTIP set
     write_csr_enum(csr_mstatus, read_csr_enum(csr_mstatus) | MSTATUS_MIE);
 
-    while (g_counter)
-        ;
-    printf("finished\n");
+//    while (g_counter)
+//        ;
+//    printf("finished\n");
 
     load_elf(0, (void*)&_binary_u_elf_start);
 

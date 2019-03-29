@@ -11,3 +11,4 @@ __syscall1:
 __syscall2:
 __syscall3:
     ecall
+    ret
