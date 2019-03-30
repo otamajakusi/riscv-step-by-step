@@ -1,3 +1,4 @@
+#include "regs.h"
 #include "femto.h"
 #include "arch/riscv/trap.h"
 #include "arch/riscv/csr.h"
@@ -53,15 +54,14 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     //printf("mpp %x\n", read_csr_enum(csr_mstatus) & MSTATUS_MPP);
     //printf("mpp %x\n", read_csr_enum(csr_mstatus));
     if (mcause == cause_user_ecall) {
-        if (regs[1] != 1) { // FIXME: currently write syscall only
-            printf("illegal syscall number %d\n", regs[1]);
+        if (regs[REG_CTX_A0] != 1) { // FIXME: currently write syscall only
+            printf("illegal syscall number %x\n", regs[1]);
             for (int i = 0; i < 16; i ++) {
               printf("[%d] %x\n", i, regs[i]);
             }
             exit(1);
         }
-        char *c = (char*)regs[3];
-        //printf("c %p (%x, %c(%x))\n", c, regs[3], regs[4], regs[4]);
+        char *c = (char*)regs[REG_CTX_A2];
         putchar(*c);
         write_csr_enum(csr_mepc, mepc + 4);
     } else
