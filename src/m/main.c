@@ -74,7 +74,7 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         } else {
             cause = riscv_excp_names[mcause & 0xf];
         }
-        printf("mcause %s, mepc %08x\n", cause, mepc);
+        printf("mcause %s, mepc %08x (ra %x)\n", cause, mepc, regs[1]);
         if (mcause == cause_machine_ecall) {
             write_csr_enum(csr_mepc, mepc + 4);
         } else {
