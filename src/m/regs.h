@@ -15,6 +15,7 @@
  * x18-27 s2-11 Saved registers Callee
  * x28-31 t3-6 Temporaries Caller
  */
+#define REG_CTX_NUM     32
                                                      
 #define REG_CTX_ZERO    0
 #define REG_CTX_RA      1

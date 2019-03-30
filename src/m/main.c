@@ -6,6 +6,7 @@
 #include "arch/riscv/machine.h"
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_TIMECMP_BASE 0x4000
@@ -26,9 +27,20 @@
  */
 
 extern uintptr_t _binary_u_elf_start;
-extern int load_elf(void *dst, const void *src);
+extern void* load_elf(uintptr_t dst_offset, const void *src);
 
 static volatile int g_counter = 1;
+
+#define USER_NUM    2
+static int g_currUser = 0;
+
+typedef struct {
+    uint32_t regs[REG_CTX_NUM];
+    uint32_t cause; // interrupted cause
+    uint32_t epc;   // entry or interrupted address
+} UserContext;
+
+static UserContext g_uctx[USER_NUM];
 
 static void handle_timer_intr()
 {
@@ -46,7 +58,7 @@ static void handle_timer_intr()
     // 2. CSR.IP.MTIP clear
     write_csr_enum(csr_mip, read_csr_enum(csr_mip) | MIP_MTIP);
     //printf("(%2d)%08x\n", g_counter, *mtime);
-    putchar('#');
+    //putchar('#');
     g_counter --;
 }
 
@@ -68,6 +80,18 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_intr();
+        // we assume all m_timer interrupt occurs in user-mode.
+        // TODO: need more investigation.
+        int mpp = (read_csr_enum(csr_mstatus) & MSTATUS_MPP) >> 11;
+        if (mpp == PRV_M) {
+            return;
+        }
+        memcpy(g_uctx[g_currUser].regs, regs, sizeof(g_uctx[0].regs));
+        g_uctx[g_currUser].epc = mepc;
+        g_currUser ^= 1; // awlays switches
+        write_csr(mepc, g_uctx[g_currUser].epc);
+        memcpy(regs, g_uctx[g_currUser].regs, sizeof(g_uctx[0].regs));
+        //printf("next(%d) epc %x\n",g_currUser, g_uctx[g_currUser].epc);
     } else {
         const char *cause;
         if (mcause & (1u << 31)) {
@@ -105,20 +129,15 @@ int main() {
     // 4. CSR.MSTATUS.MTIP set
     write_csr_enum(csr_mstatus, read_csr_enum(csr_mstatus) | MSTATUS_MIE);
 
-//    while (g_counter)
-//        ;
-//    printf("finished\n");
-
+    memset(g_uctx, 0, sizeof(g_uctx));
     // We can use same binary with different memory layout since ABI is ILP32.
     // TODO: need more investigation.
-    const void* entries[] = {
-        load_elf(0x000000, (void*)&_binary_u_elf_start),
-        load_elf(0x100000, (void*)&_binary_u_elf_start) + 0x100000,
-    };
+    g_uctx[0].epc = load_elf(0x000000, (void*)&_binary_u_elf_start);
+    g_uctx[1].epc = load_elf(0x100000, (void*)&_binary_u_elf_start) + 0x100000;
 
     pmp_allow_all();
     typedef void (*fptr)(void);
-    fptr entry = entries[0];
+    fptr entry = (fptr)g_uctx[0].epc;
     printf("entry %p\n", entry);
     mode_set_and_jump(PRV_U, entry);
 

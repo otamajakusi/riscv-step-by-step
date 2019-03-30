@@ -61,7 +61,7 @@ static int check_ehdr(const Elf32_Ehdr* ehdr) {
     return 0;
 }
 
-void* load_elf(void *dst_offset, const void *src) {
+void* load_elf(uintptr_t dst_offset, const void *src) {
     const Elf32_Ehdr* ehdr = src;
     const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
 #if defined(ENABLE_DUMP)
