@@ -3,6 +3,7 @@
 #include "arch/riscv/trap.h"
 #include "arch/riscv/csr.h"
 #include "arch/riscv/encoding.h"
+#include "arch/riscv/machine.h"
 #include <stdio.h>
 #include <stdint.h>
 
@@ -108,7 +109,18 @@ int main() {
 //        ;
 //    printf("finished\n");
 
-    load_elf(0, (void*)&_binary_u_elf_start);
+    // We can use same binary with different memory layout since ABI is ILP32.
+    // TODO: need more investigation.
+    const void* entries[] = {
+        load_elf(0x000000, (void*)&_binary_u_elf_start),
+        load_elf(0x100000, (void*)&_binary_u_elf_start) + 0x100000,
+    };
+
+    pmp_allow_all();
+    typedef void (*fptr)(void);
+    fptr entry = entries[0];
+    printf("entry %p\n", entry);
+    mode_set_and_jump(PRV_U, entry);
 
     return 0;
 }

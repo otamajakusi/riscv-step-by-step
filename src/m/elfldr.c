@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "elf.h"
-#include "arch/riscv/encoding.h"
-#include "arch/riscv/machine.h"
 
+//#define ENABLE_DUMP
+
+#if defined(ENABLE_DUMP)
 static void dump_phdr(const Elf32_Phdr* phdr) {
 	printf("%08x(p_type)\n",    phdr->p_type);
 	printf("%08x(p_offset)\n",  phdr->p_offset);
@@ -15,7 +16,7 @@ static void dump_phdr(const Elf32_Phdr* phdr) {
 	printf("%08x(p_align)\n",   phdr->p_align);
 }
 
-static void dump(const Elf32_Ehdr* ehdr, const Elf32_Phdr* phdr) {
+static void dump_ehdr(const Elf32_Ehdr* ehdr) {
 	printf("%02x%02x%02x%02x(e_ident)\n",   ehdr->e_ident[0],
                                             ehdr->e_ident[1],
                                             ehdr->e_ident[2],
@@ -33,13 +34,18 @@ static void dump(const Elf32_Ehdr* ehdr, const Elf32_Phdr* phdr) {
 	printf("%04x(e_shentsize)\n",           ehdr->e_shentsize);
 	printf("%04x(e_shnum)\n",               ehdr->e_shnum);
 	printf("%04x(e_shstrndx)\n",            ehdr->e_shstrndx);
+}
+
+static void dump_elf(const Elf32_Ehdr* ehdr, const Elf32_Phdr* phdr) {
+    dump_ehdr(ehdr);
     for (int i = 0; i < ehdr->e_phnum; i ++) {
         printf("phdr %d----------\n", i);
         dump_phdr(phdr + i);
     }
 }
+#endif
 
-static int ehdr_check(const Elf32_Ehdr* ehdr) {
+static int check_ehdr(const Elf32_Ehdr* ehdr) {
     if (ehdr->e_ident[EI_CLASS] != ELFCLASS32) {
         printf("error: e_ident[EI_CLASS] %x\n", ehdr->e_ident[EI_CLASS]);
         return -1;
@@ -55,28 +61,25 @@ static int ehdr_check(const Elf32_Ehdr* ehdr) {
     return 0;
 }
 
-int load_elf(void *dst, const void *src) {
-    printf("dst %p, src %p\n", dst, src);
+void* load_elf(void *dst_offset, const void *src) {
     const Elf32_Ehdr* ehdr = src;
     const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
-    dump(ehdr, phdr);
-    if (ehdr_check(ehdr) < 0) {
+#if defined(ENABLE_DUMP)
+    dump_elf(ehdr, phdr);
+#endif
+    if (check_ehdr(ehdr) < 0) {
         return -1;
     }
     for (int i = 0; i < ehdr->e_phnum; i ++) {
         if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
             const void* from = src + phdr[i].p_offset;
-            void* to = phdr[i].p_vaddr;
+            void* to = phdr[i].p_vaddr + dst_offset;
             printf("copying (%dth) %p --> %p (sz:%x)\n", i, from, to, phdr[i].p_filesz);
+            // FIXME:
+            // make sure from and to addresses is not illegal.
+            // make sure both W & E flags are not set.
             memcpy(to, from, phdr[i].p_filesz);
         }
     }
-    //asm volatile ("j %[entry]" : :[entry]"r"(entry));
-	pmp_allow_all();
-    typedef void (*fptr)(void);
-    fptr entry = ehdr->e_entry;
-    printf("entry %p\n", entry);
-    mode_set_and_jump(PRV_U, entry);
-    return 0;
+    return ehdr->e_entry;
 }
-
