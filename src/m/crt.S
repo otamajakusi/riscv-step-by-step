@@ -18,7 +18,7 @@ idle:
     wfi
     j       idle
 
-    .align 4
+    .p2align 2
 trap_vector:
     # Save registers.
     csrw    mscratch, x1 # save x1 first

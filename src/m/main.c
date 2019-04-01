@@ -8,6 +8,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#define USER_PA     (0) // user executes in physical address
+#define USER_VA     (!(USER_PA)) // user executes in virtual address
+
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_TIMECMP_BASE 0x4000
 #define SIFIVE_TIME_BASE    0xBFF8
@@ -27,6 +30,7 @@
  */
 
 extern uintptr_t _binary_u_elf_start;
+extern uintptr_t _binary_u_va_elf_start;
 extern void* load_elf(uintptr_t dst_offset, const void *src);
 
 static volatile int g_counter = 1;
@@ -74,7 +78,12 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
             }
             exit(1);
         }
+#if USER_PA
         char *c = (char*)regs[REG_CTX_A2];
+#elif USER_VA
+        // FIXME: va -> pa with immediate value
+        char *c = (char*)(regs[REG_CTX_A2] + 0x80400000);
+#endif
         putchar(*c);
         write_csr_enum(csr_mepc, mepc + 4);
     } else
@@ -99,7 +108,11 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         } else {
             cause = riscv_excp_names[mcause & 0xf];
         }
-        printf("mcause %s, mepc %08x (ra %x)\n", cause, mepc, regs[1]);
+        printf("mcause %s, mepc %08x (ra %x, mstatus %x, mtval %x, sepc %x, satp %x)\n", 
+                cause, mepc, regs[1],
+                read_csr_enum(csr_mstatus), read_csr_enum(csr_mtval),
+                read_csr_enum(csr_sepc),
+                read_csr_enum(csr_satp));
         if (mcause == cause_machine_ecall) {
             write_csr_enum(csr_mepc, mepc + 4);
         } else {
@@ -132,8 +145,16 @@ int main() {
     memset(g_uctx, 0, sizeof(g_uctx));
     // We can use same binary with different memory layout since ABI is ILP32.
     // TODO: need more investigation.
+#if USER_PA
     g_uctx[0].epc = load_elf(0x000000, (void*)&_binary_u_elf_start);
     g_uctx[1].epc = load_elf(0x100000, (void*)&_binary_u_elf_start) + 0x100000;
+#elif USER_VA
+    g_uctx[0].epc = load_elf(0x80400000, (void*)&_binary_u_va_elf_start);
+    g_uctx[1].epc = load_elf(0x80500000, (void*)&_binary_u_va_elf_start) + 0x100000;
+#endif
+
+    extern void init_pte();
+    init_pte();
 
     pmp_allow_all();
     typedef void (*fptr)(void);

@@ -22,5 +22,4 @@ multiple of userland with MMU by S mode
 ### TODO
 libfemto/include/arch/riscv/machine.h
 -> removing div and mul
--> trap .align fix
 -> printf `x / 10` optimize
