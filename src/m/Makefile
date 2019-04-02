@@ -5,8 +5,8 @@ include ../../mk/common.mk
 include ../../mk/m.mk
 
 u.elf:
-	$(MAKE) -C ../u-va
-	cp ../u-va/$@ .
+	$(MAKE) -C ../u
+	cp ../u/$@ .
 
 u-va.elf:
 	$(MAKE) -C ../u-va

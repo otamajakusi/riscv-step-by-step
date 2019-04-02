@@ -12,6 +12,9 @@
 #define USER_VA     (!(USER_PA)) // user executes in virtual address
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
+#define SIFIVE_CLINT_TIMEBASE_FREQ  10000000
+
+/* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_TIMECMP_BASE 0x4000
 #define SIFIVE_TIME_BASE    0xBFF8
 /*
@@ -52,7 +55,7 @@ static void handle_timer_intr()
     volatile uintptr_t *mtime = (uintptr_t*)(CLINT_BASE + SIFIVE_TIME_BASE);
     // 1. mtimecmp set 0x100000 (?sec?)
     // See. riscv-privileged-v1.10.pdf 3.1.15 Machine Timer Register
-    uint32_t mtimecmp_incr = 0x10000;
+    uint32_t mtimecmp_incr = SIFIVE_CLINT_TIMEBASE_FREQ;
     uint64_t mtimecmp_next = (*(uint64_t*)mtimecmp) + mtimecmp_incr;
     uint32_t mtimecmp_lo = mtimecmp_next;
     uint32_t mtimecmp_hi = mtimecmp_next >> 32;
