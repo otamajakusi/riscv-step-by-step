@@ -1,5 +1,5 @@
 LDFLAGS += -L$(MAKEFILE_DIR)../riscv-probe/env/qemu-sifive_u -Tdefault.lds \
-           $(MAKEFILE_DIR)../riscv-probe/build/obj/rv32imac/env/qemu-sifive_u/setup.o
+
 
 .PHONY: test
 test:

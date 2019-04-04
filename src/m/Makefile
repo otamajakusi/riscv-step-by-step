@@ -1,4 +1,4 @@
-srcs  = crt.S main.c elfldr.c vm.c
+srcs  = crt.S main.c setup.c elfldr.c vm.c
 target = m.elf
 objs = u.elf.o u-va.elf.o
 include ../../mk/common.mk

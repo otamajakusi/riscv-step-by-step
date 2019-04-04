@@ -36,3 +36,19 @@ mkdir -p riscv-gnu-toolchain/build
 cd riscv-gnu-toolchain/build
 
 ../configure --prefix=/opt/rv32gc --with-arch=rv32gc --with-abi=ilp32d --disable-gdb --disable-linux
+
+# References
+## Privileged Architecture Version 1.10
+https://github.com/riscv/riscv-isa-manual/blob/master/release/riscv-privileged-v1.10.pdf
+(csr, virtual address, etc)
+
+## RISC-V ELF psABI specification
+https://github.com/riscv/riscv-elf-psabi-doc/blob/master/riscv-elf.md
+(calling convention, etc)
+
+## SiFive FE310-G000 Manual
+https://sifive.cdn.prismic.io/sifive%2F4d063bf8-3ae6-4db6-9843-ee9076ebadf7_fe310-g000.pdf
+(PLIC, UART register, etc)
+
+## riscv-qemu wiki
+https://github.com/riscv/riscv-qemu/wiki 

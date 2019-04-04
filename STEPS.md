@@ -28,8 +28,5 @@ task state: ready, running and blocked.
 ## step10
 thread, mutex, condition variable.
 
-## step??
-debuggin support.
-
-## step??
-security (elf encryption etc).
+## step11
+security (NX, SSP, ASLR, execute-only)

@@ -92,8 +92,6 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_intr();
-        // we assume all m_timer interrupt occurs in user-mode.
-        // TODO: need more investigation.
         int mpp = (read_csr_enum(csr_mstatus) & MSTATUS_MPP) >> 11;
         if (mpp == PRV_M) {
             return;
@@ -104,6 +102,26 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         write_csr(mepc, g_uctx[g_currUser].epc);
         memcpy(regs, g_uctx[g_currUser].regs, sizeof(g_uctx[0].regs));
         //printf("next(%d) epc %x\n",g_currUser, g_uctx[g_currUser].epc);
+    } else
+    if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_external) {
+        /*
+         * external interrupt handling
+         * 1. read irq number from claim/complete register
+         * 2. handle interrupt
+         * 3. write irq number handled to claim/complete register
+         */
+         volatile uint32_t *plic_claim = (uint32_t*)0x0C200004; // PLIC Claim/Complete Register (claim)
+         uint32_t irq = *plic_claim;
+         printf("irq %x\n", irq);
+         
+         while (1) {
+            int c = getchar();
+            if (c == -1) {
+                break;
+            }
+            printf("%c", c);
+         }
+         *plic_claim = irq;
     } else {
         const char *cause;
         if (mcause & (1u << 31)) {
@@ -140,9 +158,9 @@ int main() {
     printf("mie %08x, mip %08x\n", read_csr_enum(csr_mie), read_csr_enum(csr_mip));
 
     handle_timer_intr();
-    // 3. CSR.IE.MTIP set
-    write_csr_enum(csr_mie, read_csr_enum(csr_mie) | MIP_MTIP);
-    // 4. CSR.MSTATUS.MTIP set
+    // 3. CSR.IE.MTIP,MEIP set
+    write_csr_enum(csr_mie, read_csr_enum(csr_mie) | MIP_MTIP | MIP_MEIP);
+    // 4. CSR.MSTATUS.MIE set
     write_csr_enum(csr_mstatus, read_csr_enum(csr_mstatus) | MSTATUS_MIE);
 
     memset(g_uctx, 0, sizeof(g_uctx));
