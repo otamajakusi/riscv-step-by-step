@@ -6,8 +6,6 @@ submodules=$(git submodule status)
 
 urls=$(mktemp)
 
-if false; then
-
 for submodule in ${submodules}; do
     hash=$(echo ${submodule} | awk '{sub("-","",$1); print $1}')
     path=$(echo ${submodule} | awk '{print $2}')
@@ -16,8 +14,6 @@ for submodule in ${submodules}; do
 done
 
 cat ${urls} | xargs -n 1 -P 0 wget
-
-fi
 
 for submodule in ${submodules}; do
     hash=$(echo ${submodule} | awk '{sub("-","",$1); print $1}')
