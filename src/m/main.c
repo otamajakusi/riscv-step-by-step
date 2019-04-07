@@ -12,7 +12,7 @@
 #define USER_VA     (!(USER_PA)) // user executes in virtual address
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
-#define SIFIVE_CLINT_TIMEBASE_FREQ  10000000
+#define SIFIVE_CLINT_TIMEBASE_FREQ  10000000 / 16
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_TIMECMP_BASE 0x4000
@@ -20,7 +20,6 @@
 /*
  * Articles
  * http://embeddedsystems.io/fe310g-open-source-riscv-microcontroller-interrupt-system/
- * http://msyksphinz.hatenablog.com/?page=1512902385
  * https://www.sifive.com/cores/s51 (ARM comparison)
  *
  * Two interrupt types: global and local.
@@ -35,19 +34,27 @@
 extern uintptr_t _binary_u_elf_start;
 extern uintptr_t _binary_u_va_elf_start;
 extern void* load_elf(uintptr_t dst_offset, const void *src);
+extern void _idle();
 
 static volatile int g_counter = 1;
 
 #define USER_NUM    2
-static int g_currUser = 0;
 
-typedef struct {
+typedef struct UserContext {
     uint32_t regs[REG_CTX_NUM];
     uint32_t cause; // interrupted cause
     uint32_t epc;   // entry or interrupted address
+    uint32_t status; // ready(0), running(1) and blocked(2)
+    uint32_t count;
+    struct UserContext *next;
+    uint32_t mode;
 } UserContext;
 
+static UserContext* g_curr_ctx = NULL; // pointer of g_uctx or NULL if idle 
+
 static UserContext g_uctx[USER_NUM];
+
+static UserContext *uart0 = NULL;
 
 static void handle_timer_intr()
 {
@@ -71,6 +78,7 @@ static void handle_timer_intr()
 
 static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
+    UserContext *next = NULL;
     //printf("mpp %x\n", read_csr_enum(csr_mstatus) & MSTATUS_MPP);
     //printf("mpp %x\n", read_csr_enum(csr_mstatus));
     if (mcause == cause_user_ecall) {
@@ -92,16 +100,46 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_intr();
-        int mpp = (read_csr_enum(csr_mstatus) & MSTATUS_MPP) >> 11;
-        if (mpp == PRV_M) {
+        /*
+         * 1. find non blocking task
+         * 2. if task is not found, idle
+         * 3. running was 
+         */
+        UserContext* next = NULL;
+        UserContext* ctx = g_curr_ctx == NULL ? &g_uctx[0] : g_curr_ctx;
+        for (int i = 0;i < USER_NUM; i ++) {
+            if (ctx->status != 2) {
+                if (ctx->count <= 4) {
+                    ctx->count ++;
+                    next = ctx;
+                }
+            }
+            ctx = ctx->next;
+        }
+
+        if (next && next == g_curr_ctx) {
             return;
         }
-        memcpy(g_uctx[g_currUser].regs, regs, sizeof(g_uctx[0].regs));
-        g_uctx[g_currUser].epc = mepc;
-        g_currUser ^= 1; // awlays switches
-        write_csr(mepc, g_uctx[g_currUser].epc);
-        memcpy(regs, g_uctx[g_currUser].regs, sizeof(g_uctx[0].regs));
-        //printf("next(%d) epc %x\n",g_currUser, g_uctx[g_currUser].epc);
+
+        // context switch
+        // save curr context if curr is not idle
+        if (g_curr_ctx) {
+            g_curr_ctx->count = 0; // clear counter when yield
+            memcpy(g_curr_ctx->regs, regs, sizeof(g_uctx[0].regs));
+            g_curr_ctx->epc = mepc;
+        }
+
+        g_curr_ctx = next;
+        // next task not found
+        if (next == NULL) {
+            write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_M << 11));
+            write_csr(mepc, _idle);
+        } else {
+            // restore next context
+            write_csr(mepc, next->epc);
+            write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (next->mode << 11));
+            memcpy(regs, next->regs, sizeof(g_uctx[0].regs));
+        }
     } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_external) {
         /*
@@ -160,8 +198,8 @@ int main() {
     handle_timer_intr();
     // 3. CSR.IE.MTIP,MEIP set
     write_csr_enum(csr_mie, read_csr_enum(csr_mie) | MIP_MTIP | MIP_MEIP);
-    // 4. CSR.MSTATUS.MIE set
-    write_csr_enum(csr_mstatus, read_csr_enum(csr_mstatus) | MSTATUS_MIE);
+    // 4. CSR.MSTATUS.MIE set -> enabled by mret
+    //write_csr_enum(csr_mstatus, read_csr_enum(csr_mstatus) | MSTATUS_MIE);
 
     memset(g_uctx, 0, sizeof(g_uctx));
     // We can use same binary with different memory layout since ABI is ILP32.
@@ -173,6 +211,12 @@ int main() {
     g_uctx[0].epc = load_elf(0x80400000, (void*)&_binary_u_va_elf_start);
     g_uctx[1].epc = load_elf(0x80500000, (void*)&_binary_u_va_elf_start) + 0x100000;
 #endif
+    for (int i = 0;i < USER_NUM; i ++) {
+        g_uctx[i].next = &g_uctx[(i + 1) % USER_NUM];
+        g_uctx[i].mode = PRV_U;
+        g_uctx[i].status = 2;
+    }
+    g_curr_ctx = g_uctx;
 
     extern void init_pte();
     init_pte();
@@ -181,7 +225,15 @@ int main() {
     typedef void (*fptr)(void);
     fptr entry = (fptr)g_uctx[0].epc;
     printf("entry %p\n", entry);
-    mode_set_and_jump(PRV_U, entry);
+
+    // start the world.
+    // before mret, set
+    // mepc to user's entry,
+    // mstatus.mpp to user mode and,
+    // mstatus.mpie to enable interrupt
+    write_csr(mepc, entry);
+    write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11) | (1u << 7));
+    mret();
 
     return 0;
 }

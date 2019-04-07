@@ -4,19 +4,20 @@ STACK_SIZE = 1024
 
 .section .text.init,"ax",@progbits
 .global _start
+.global _idle
 _start:
     # setup default trap vector
     la      t0, trap_vector
     csrw    mtvec, t0
 
     csrr    a0, mhartid
-    bnez    a0, idle
+    bnez    a0, _idle
     la      sp, stack_bottom
     j       libfemto_start_main
 
-idle:
+_idle:
     wfi
-    j       idle
+    j       _idle
 
     .p2align 2
 trap_vector:
