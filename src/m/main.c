@@ -1,4 +1,5 @@
 #include "regs.h"
+#include "../u/syscall.h"
 #include "femto.h"
 #include "arch/riscv/trap.h"
 #include "arch/riscv/csr.h"
@@ -48,6 +49,9 @@ typedef struct UserContext {
     uint32_t count;
     struct UserContext *next;
     uint32_t mode;
+    uint32_t paddr; // 32-bit physical address is supported
+    uint32_t offset; // 32-bit physical address is supported
+    char tag[8];
 } UserContext;
 
 static UserContext* g_curr_ctx = NULL; // pointer of g_uctx or NULL if idle 
@@ -82,20 +86,34 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     //printf("mpp %x\n", read_csr_enum(csr_mstatus) & MSTATUS_MPP);
     //printf("mpp %x\n", read_csr_enum(csr_mstatus));
     if (mcause == cause_user_ecall) {
-        if (regs[REG_CTX_A0] != 1) { // FIXME: currently write syscall only
+        switch (regs[REG_CTX_A0]) {
+        case SYSCALL_READ: {
+            printf("TODO: scheduling is required\n");
+            exit(1);
+            break;
+        }
+        case SYSCALL_WRITE: {
+#if USER_PA
+            char *c = (char*)regs[REG_CTX_A2];
+#elif USER_VA
+            char *c = (char*)(regs[REG_CTX_A2] + g_curr_ctx->paddr - g_curr_ctx->offset);
+#endif
+            ///printf("regs[REG_CTX_A2] %p %d, %s\n", regs[REG_CTX_A2], *c, g_curr_ctx->tag);
+            putchar(*c);
+            break;
+        }
+        case SYSCALL_EXIT:
+            // TODO: remove from next link
+            printf("TODO: scheduling is required\n");
+            exit(1);
+            break;
+        default:
             printf("illegal syscall number %x\n", regs[1]);
             for (int i = 0; i < 16; i ++) {
               printf("[%d] %x\n", i, regs[i]);
             }
             exit(1);
         }
-#if USER_PA
-        char *c = (char*)regs[REG_CTX_A2];
-#elif USER_VA
-        // FIXME: va -> pa with immediate value
-        char *c = (char*)(regs[REG_CTX_A2] + 0x80400000);
-#endif
-        putchar(*c);
         write_csr_enum(csr_mepc, mepc + 4);
     } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_timer) {
@@ -107,20 +125,23 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
          */
         UserContext* next = NULL;
         UserContext* ctx = g_curr_ctx == NULL ? &g_uctx[0] : g_curr_ctx;
+        //printf("%s\n", ctx->tag);
         for (int i = 0;i < USER_NUM; i ++) {
-            if (ctx->status != 2) {
-                if (ctx->count <= 4) {
+            if (ctx->status == 0 || ctx->status == 1) {
+                if (ctx->count < 4) {
                     ctx->count ++;
                     next = ctx;
+                    break;
                 }
             }
             ctx = ctx->next;
         }
 
-        if (next && next == g_curr_ctx) {
+        if (next == g_curr_ctx) {
             return;
         }
 
+        //printf("next %p(%s), g_curr_ctx %p(%s)\n", next, next->tag, g_curr_ctx, g_curr_ctx->tag);
         // context switch
         // save curr context if curr is not idle
         if (g_curr_ctx) {
@@ -130,11 +151,14 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         }
 
         g_curr_ctx = next;
-        // next task not found
         if (next == NULL) {
+            //printf("idle\n");
+            // next task not found
             write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_M << 11));
             write_csr(mepc, _idle);
         } else {
+            //printf("%s: next->epc %p\n", next->tag, next->epc);
+
             // restore next context
             write_csr(mepc, next->epc);
             write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (next->mode << 11));
@@ -208,22 +232,28 @@ int main() {
     g_uctx[0].epc = load_elf(0x000000, (void*)&_binary_u_elf_start);
     g_uctx[1].epc = load_elf(0x100000, (void*)&_binary_u_elf_start) + 0x100000;
 #elif USER_VA
-    g_uctx[0].epc = load_elf(0x80400000, (void*)&_binary_u_va_elf_start);
-    g_uctx[1].epc = load_elf(0x80500000, (void*)&_binary_u_va_elf_start) + 0x100000;
+    g_uctx[0].paddr = 0x80400000;
+    g_uctx[1].paddr = 0x80500000;
+    g_uctx[0].offset = 0x0;
+    g_uctx[1].offset = 0x100000;
+    g_uctx[0].epc = load_elf(g_uctx[0].paddr, (void*)&_binary_u_va_elf_start) + g_uctx[0].offset;
+    g_uctx[1].epc = load_elf(g_uctx[1].paddr, (void*)&_binary_u_va_elf_start) + g_uctx[1].offset;
 #endif
     for (int i = 0;i < USER_NUM; i ++) {
         g_uctx[i].next = &g_uctx[(i + 1) % USER_NUM];
         g_uctx[i].mode = PRV_U;
-        g_uctx[i].status = 2;
+        g_uctx[i].status = 0;
+        g_uctx[i].tag[0] = 'A' + i;
+        g_uctx[i].tag[1] = '\0';
     }
-    g_curr_ctx = g_uctx;
+    int first = 1;
+    g_curr_ctx = &g_uctx[first];
 
     extern void init_pte();
     init_pte();
 
     pmp_allow_all();
-    typedef void (*fptr)(void);
-    fptr entry = (fptr)g_uctx[0].epc;
+    uint32_t entry = g_uctx[first].epc;
     printf("entry %p\n", entry);
 
     // start the world.

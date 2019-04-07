@@ -17,7 +17,17 @@ console_device_t console_user = {
     console_putchar
 };
 
+static void poweroff(int status) {
+    __exit(status);
+}
+
+poweroff_device_t poweroff_user = {
+	NULL,
+	poweroff
+};
+
 void arch_setup()
 {
     register_console(&console_user);
+    register_poweroff(&poweroff_user);
 }

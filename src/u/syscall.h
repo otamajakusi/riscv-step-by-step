@@ -5,10 +5,13 @@
  * 2: open
  * 3: close
  */
+#include <stddef.h>
+
 #define SYSCALL_READ    0
 #define SYSCALL_WRITE   1
 #define SYSCALL_OPEN    2
 #define SYSCALL_CLOSE   3
+#define SYSCALL_EXIT    32
 
 #if !defined(__ASSEMBLER__)
 #define __SYSCALL0(number)                  __syscall0((number))
@@ -27,6 +30,10 @@ static inline int __read(int fd, void *buf, size_t count) {
 
 static inline int __write(int fd, const void *buf, size_t count) {
     return __SYSCALL3(SYSCALL_WRITE, fd, buf, count);
+}
+
+static inline int __exit(int status) {
+    return __SYSCALL1(SYSCALL_EXIT, status);
 }
 
 #endif
