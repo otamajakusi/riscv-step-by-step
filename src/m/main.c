@@ -1,4 +1,6 @@
 #include "regs.h"
+#include "task.h"
+#include "sched.h"
 #include "../u/syscall.h"
 #include "femto.h"
 #include "arch/riscv/trap.h"
@@ -35,30 +37,12 @@
 extern uintptr_t _binary_u_elf_start;
 extern uintptr_t _binary_u_va_elf_start;
 extern void* load_elf(uintptr_t dst_offset, const void *src);
-extern void _idle();
 
 static volatile int g_counter = 1;
 
 #define USER_NUM    2
 
-typedef struct UserContext {
-    uint32_t regs[REG_CTX_NUM];
-    uint32_t cause; // interrupted cause
-    uint32_t epc;   // entry or interrupted address
-    uint32_t status; // ready(0), running(1) and blocked(2)
-    uint32_t count;
-    struct UserContext *next;
-    uint32_t mode;
-    uint32_t paddr; // 32-bit physical address is supported
-    uint32_t offset; // 32-bit physical address is supported
-    char tag[8];
-} UserContext;
-
-static UserContext* g_curr_ctx = NULL; // pointer of g_uctx or NULL if idle 
-
-static UserContext g_uctx[USER_NUM];
-
-static UserContext *uart0 = NULL;
+static task_t g_uctx[USER_NUM];
 
 static void handle_timer_intr()
 {
@@ -75,37 +59,32 @@ static void handle_timer_intr()
     *mtimecmp = mtimecmp_lo;
     // 2. CSR.IP.MTIP clear
     write_csr_enum(csr_mip, read_csr_enum(csr_mip) | MIP_MTIP);
-    //printf("(%2d)%08x\n", g_counter, *mtime);
     //putchar('#');
     g_counter --;
 }
 
 static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
-    UserContext *next = NULL;
+    task_t *next = NULL;
     //printf("mpp %x\n", read_csr_enum(csr_mstatus) & MSTATUS_MPP);
     //printf("mpp %x\n", read_csr_enum(csr_mstatus));
     if (mcause == cause_user_ecall) {
         switch (regs[REG_CTX_A0]) {
-        case SYSCALL_READ: {
-            printf("TODO: scheduling is required\n");
-            exit(1);
+        case SYSCALL_READ:
+            // TODO: handle task status
             break;
-        }
         case SYSCALL_WRITE: {
 #if USER_PA
             char *c = (char*)regs[REG_CTX_A2];
 #elif USER_VA
-            char *c = (char*)(regs[REG_CTX_A2] + g_curr_ctx->paddr - g_curr_ctx->offset);
+            const task_t* curr_task = sched_curr_task();
+            char *c = (char*)(regs[REG_CTX_A2] + curr_task->paddr - curr_task->offset);
 #endif
-            ///printf("regs[REG_CTX_A2] %p %d, %s\n", regs[REG_CTX_A2], *c, g_curr_ctx->tag);
             putchar(*c);
             break;
         }
         case SYSCALL_EXIT:
-            // TODO: remove from next link
-            printf("TODO: scheduling is required\n");
-            exit(1);
+            // TODO: handle task status, remove from next link
             break;
         default:
             printf("illegal syscall number %x\n", regs[1]);
@@ -118,52 +97,7 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_intr();
-        /*
-         * 1. find non blocking task
-         * 2. if task is not found, idle
-         * 3. running was 
-         */
-        UserContext* next = NULL;
-        UserContext* ctx = g_curr_ctx == NULL ? &g_uctx[0] : g_curr_ctx;
-        //printf("%s\n", ctx->tag);
-        for (int i = 0;i < USER_NUM; i ++) {
-            if (ctx->status == 0 || ctx->status == 1) {
-                if (ctx->count < 4) {
-                    ctx->count ++;
-                    next = ctx;
-                    break;
-                }
-            }
-            ctx = ctx->next;
-        }
-
-        if (next == g_curr_ctx) {
-            return;
-        }
-
-        //printf("next %p(%s), g_curr_ctx %p(%s)\n", next, next->tag, g_curr_ctx, g_curr_ctx->tag);
-        // context switch
-        // save curr context if curr is not idle
-        if (g_curr_ctx) {
-            g_curr_ctx->count = 0; // clear counter when yield
-            memcpy(g_curr_ctx->regs, regs, sizeof(g_uctx[0].regs));
-            g_curr_ctx->epc = mepc;
-        }
-
-        g_curr_ctx = next;
-        if (next == NULL) {
-            //printf("idle\n");
-            // next task not found
-            write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_M << 11));
-            write_csr(mepc, _idle);
-        } else {
-            //printf("%s: next->epc %p\n", next->tag, next->epc);
-
-            // restore next context
-            write_csr(mepc, next->epc);
-            write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (next->mode << 11));
-            memcpy(regs, next->regs, sizeof(g_uctx[0].regs));
-        }
+        sched_schedule(regs, mepc);
     } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_external) {
         /*
@@ -246,8 +180,9 @@ int main() {
         g_uctx[i].tag[0] = 'A' + i;
         g_uctx[i].tag[1] = '\0';
     }
-    int first = 1;
-    g_curr_ctx = &g_uctx[first];
+    int first = 0;
+
+    sched_init(&g_uctx[first]);
 
     extern void init_pte();
     init_pte();
