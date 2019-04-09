@@ -26,6 +26,7 @@ typedef struct task_t {
     uint32_t mode;
     uint32_t paddr; // 32-bit physical address is supported
     uint32_t offset; // 32-bit physical address is supported
+    struct task_t *prev;
     struct task_t *next;
 } task_t;
 

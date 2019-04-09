@@ -22,7 +22,8 @@ task_t* sched_curr_task()
 
 void sched_schedule(uintptr_t* regs, uintptr_t epc)
 {
-    task_t* curr = curr_task ? curr_task->next : root_task;
+    task_t* start = curr_task ? curr_task->next : root_task;
+    task_t* curr = start;
     task_t* next = NULL;
     do {
         if (curr->status <= task_stat_running) {
@@ -30,7 +31,7 @@ void sched_schedule(uintptr_t* regs, uintptr_t epc)
             break;
         }
         curr = curr->next;
-    } while (curr->next != curr_task);
+    } while (curr != start);
 
     if (next == curr_task) {
         return;

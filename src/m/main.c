@@ -65,19 +65,19 @@ static void handle_timer_intr()
 
 static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
-    task_t *next = NULL;
+    task_t* curr_task = sched_curr_task();
     //printf("mpp %x\n", read_csr_enum(csr_mstatus) & MSTATUS_MPP);
     //printf("mpp %x\n", read_csr_enum(csr_mstatus));
     if (mcause == cause_user_ecall) {
         switch (regs[REG_CTX_A0]) {
         case SYSCALL_READ:
-            // TODO: handle task status
+            curr_task->status = task_stat_blocking;
+            sched_schedule(regs, mepc + 4);
             break;
         case SYSCALL_WRITE: {
 #if USER_PA
             char *c = (char*)regs[REG_CTX_A2];
 #elif USER_VA
-            const task_t* curr_task = sched_curr_task();
             char *c = (char*)(regs[REG_CTX_A2] + curr_task->paddr - curr_task->offset);
 #endif
             putchar(*c);
@@ -85,6 +85,9 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         }
         case SYSCALL_EXIT:
             // TODO: handle task status, remove from next link
+            printf("%s exit(%d)\n", curr_task->tag, regs[REG_CTX_A1]);
+            curr_task->status = task_stat_terminated;
+            sched_schedule(regs, mepc + 4);
             break;
         default:
             printf("illegal syscall number %x\n", regs[1]);
@@ -174,6 +177,7 @@ int main() {
     g_uctx[1].epc = load_elf(g_uctx[1].paddr, (void*)&_binary_u_va_elf_start) + g_uctx[1].offset;
 #endif
     for (int i = 0;i < USER_NUM; i ++) {
+        g_uctx[i].prev = &g_uctx[(i - 1 + USER_NUM) % USER_NUM];
         g_uctx[i].next = &g_uctx[(i + 1) % USER_NUM];
         g_uctx[i].mode = PRV_U;
         g_uctx[i].status = 0;
@@ -191,6 +195,7 @@ int main() {
     uint32_t entry = g_uctx[first].epc;
     printf("entry %p\n", entry);
 
+    // TODO: use sched_schedule()
     // start the world.
     // before mret, set
     // mepc to user's entry,
