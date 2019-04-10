@@ -101,7 +101,7 @@ trap_vector:
     mret
 
     .bss
-    .align 4
+    .p2align 4
 stack:
     .skip STACK_SIZE
 stack_bottom:

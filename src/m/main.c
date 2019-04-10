@@ -73,7 +73,7 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         case SYSCALL_READ:
             curr_task->status = task_stat_blocking;
             sched_schedule(regs, mepc + 4);
-            break;
+            return;
         case SYSCALL_WRITE: {
 #if USER_PA
             char *c = (char*)regs[REG_CTX_A2];
@@ -81,14 +81,13 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
             char *c = (char*)(regs[REG_CTX_A2] + curr_task->paddr - curr_task->offset);
 #endif
             putchar(*c);
-            break;
+            write_csr_enum(csr_mepc, mepc + 4);
+            return;
         }
         case SYSCALL_EXIT:
-            // TODO: handle task status, remove from next link
             printf("%s exit(%d)\n", curr_task->tag, regs[REG_CTX_A1]);
             curr_task->status = task_stat_terminated;
-            sched_schedule(regs, mepc + 4);
-            break;
+            return sched_schedule(regs, mepc + 4);
         default:
             printf("illegal syscall number %x\n", regs[1]);
             for (int i = 0; i < 16; i ++) {
@@ -96,7 +95,6 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
             }
             exit(1);
         }
-        write_csr_enum(csr_mepc, mepc + 4);
     } else
     if (mcause & (1u << 31) && (mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_intr();
@@ -111,16 +109,23 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
          */
          volatile uint32_t *plic_claim = (uint32_t*)0x0C200004; // PLIC Claim/Complete Register (claim)
          uint32_t irq = *plic_claim;
-         printf("irq %x\n", irq);
+         int ctrl_c = 0;
          
          while (1) {
             int c = getchar();
             if (c == -1) {
                 break;
             }
+            if (c == 3) {
+                printf("^C\n");
+                ctrl_c = 1;
+            }
             printf("%c", c);
          }
          *plic_claim = irq;
+         if (ctrl_c) {
+             exit(0);
+         }
     } else {
         const char *cause;
         if (mcause & (1u << 31)) {
