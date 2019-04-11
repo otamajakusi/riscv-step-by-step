@@ -37,7 +37,8 @@ void sched_schedule(uintptr_t* regs, uintptr_t epc)
         return;
     }
 
-    if (curr_task) { // curr_task is not idle and next is not curr_task
+    if (curr_task && // curr_task is not idle and next is not curr_task
+        curr_task->status != task_stat_terminated) {
         // save current regs and epc to the context
         memcpy(curr_task->regs, regs, sizeof(curr_task->regs));
         curr_task->epc = epc;

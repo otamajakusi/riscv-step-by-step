@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 enum {
+    /* currently, ready and running are not different */
     task_stat_ready,
     task_stat_running,
     task_stat_blocking,

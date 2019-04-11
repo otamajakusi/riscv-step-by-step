@@ -34,6 +34,12 @@
  * PLIC: Platform-Level Interrupt Controller
  */
 
+#if USER_PA
+#define TASK_ADDR(task, addr) (addr)
+#elif USER_VA
+#define TASK_ADDR(task, addr) ((addr) + (task)->paddr - (task)->offset)
+#endif
+
 extern uintptr_t _binary_u_elf_start;
 extern uintptr_t _binary_u_va_elf_start;
 extern void* load_elf(uintptr_t dst_offset, const void *src);
@@ -43,6 +49,7 @@ static volatile int g_counter = 1;
 #define USER_NUM    2
 
 static task_t g_uctx[USER_NUM];
+static task_t* read_task = NULL;
 
 static void handle_timer_intr()
 {
@@ -71,14 +78,22 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     if (mcause == cause_user_ecall) {
         switch (regs[REG_CTX_A0]) {
         case SYSCALL_READ:
+            // TODO: make sure, the buffer address is in the task range.
+            if (read_task) {
+                regs[REG_CTX_A0] = -1;
+                write_csr_enum(csr_mepc, mepc + 4);
+                return;
+            }
+            read_task = curr_task;
             curr_task->status = task_stat_blocking;
             sched_schedule(regs, mepc + 4);
             return;
         case SYSCALL_WRITE: {
+            // TODO: make sure, the buffer address is in the task range.
 #if USER_PA
             char *c = (char*)regs[REG_CTX_A2];
 #elif USER_VA
-            char *c = (char*)(regs[REG_CTX_A2] + curr_task->paddr - curr_task->offset);
+            char *c = (char*)(TASK_ADDR(curr_task, regs[REG_CTX_A2]));
 #endif
             putchar(*c);
             write_csr_enum(csr_mepc, mepc + 4);
@@ -109,23 +124,40 @@ static void trap_handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
          */
          volatile uint32_t *plic_claim = (uint32_t*)0x0C200004; // PLIC Claim/Complete Register (claim)
          uint32_t irq = *plic_claim;
-         int ctrl_c = 0;
-         
-         while (1) {
-            int c = getchar();
-            if (c == -1) {
-                break;
+
+         if (read_task) {
+            // we assume the buffer address is already checked.
+            char *p = (char*)(TASK_ADDR(read_task, regs[REG_CTX_A2]));
+            size_t size = read_task->regs[REG_CTX_A3];
+            size_t cnt = 0;
+            for (cnt = 0;cnt < size; cnt ++) {
+                int c = getchar();
+                if (c == -1) {
+                    break;
+                }
+                *p ++ = c;
             }
-            if (c == 3) {
-                printf("^C\n");
-                ctrl_c = 1;
+            read_task->regs[REG_CTX_A0] = cnt;
+            read_task->status = task_stat_ready;
+            read_task = NULL;
+         } else {
+            int ctrl_c = 0;
+            while (1) {
+                int c = getchar();
+                if (c == -1) {
+                    break;
+                }
+                if (c == 3) {
+                    printf("^C\n");
+                    ctrl_c = 1;
+                }
+                printf("%c", c);
             }
-            printf("%c", c);
+            if (ctrl_c) {
+                exit(0);
+            }
          }
          *plic_claim = irq;
-         if (ctrl_c) {
-             exit(0);
-         }
     } else {
         const char *cause;
         if (mcause & (1u << 31)) {
