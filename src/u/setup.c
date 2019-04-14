@@ -3,7 +3,9 @@
 
 static int console_getchar()
 {
-    return -1;
+    char c;
+    __read(0, &c, 1);
+    return c;
 }
 
 static int console_putchar(int ch)
@@ -13,7 +15,7 @@ static int console_putchar(int ch)
 
 console_device_t console_user = {
     NULL,
-    NULL,
+    console_getchar,
     console_putchar
 };
 
