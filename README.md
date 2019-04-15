@@ -13,37 +13,52 @@
 
 なおコンパイラはgcc, 実行環境はqemu, ライブラリとしてriscv-probeを使用します。
 
-## step1
-
+### step1
 machine mode hello world.
 
-## step2
+### step2
 machine mode with `ecall` exception.
 
-## step3
+### step3
 machine mode with timer interrupt.
 
-## step4
+### step4
 user mode hello world.
 
-## step5
+### step5
 user mode hello world with syscall.
 
-## step6
+### step6
 user mode loading with elf.
 
-## step7
+### step7
 multiple user mode.
 
-## step8
+### step8
 virtual address / page protection.
 
-## step9
+### step9
 task state: ready, running and blocked.
 
-## step10
+### step10
 thread, mutex, condition variable.
 
-## step11
-security (NX, SSP, ASLR, execute-only)
+### step11
+security (NX, SSP, ASLR, execute-only, SMEP/SMAP)
+
+## References
+### Privileged Architecture Version 1.10
+https://github.com/riscv/riscv-isa-manual/blob/master/release/riscv-privileged-v1.10.pdf
+(csr, virtual address, etc)
+
+### RISC-V ELF psABI specification
+https://github.com/riscv/riscv-elf-psabi-doc/blob/master/riscv-elf.md
+(calling convention, etc)
+
+### SiFive FE310-G000 Manual
+https://sifive.cdn.prismic.io/sifive%2F4d063bf8-3ae6-4db6-9843-ee9076ebadf7_fe310-g000.pdf
+(PLIC, UART register, etc)
+
+## riscv-qemu wiki
+https://github.com/riscv/riscv-qemu/wiki
 
