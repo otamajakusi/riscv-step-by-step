@@ -20,7 +20,7 @@ cd where/to/repos/riscv-gnu-toolchain
 sh where/to/repos/riscv-mini/get-submodule-zips.sh
 ```
 
-その後のビルド方法は公式のREADME.mdに従いますが, 以下を実行します.
+その後のビルド方法は公式のREADME.mdに従いますが, RV32のみを使用する場合は以下を実行します.
 
 ```bash
 cd where/to/repos/riscv-gnu-toolchain
@@ -32,12 +32,14 @@ sudo make install
 ```
 
 ### setup riscv-qemu
+qemuもRV32のみを使用するため, 32-bitのビルドのみとします.
+
 ```bash
 cd where/to/repos
 git clone -n https://github.com/riscv/riscv-qemu.git
 cd riscv-qemu
 git checkout 13c24edaa742181af8d9c6b027ee366b04de1ea1
-# check https://github.com/riscv/riscv-qemu/wiki
+# see https://github.com/riscv/riscv-qemu/wiki
 mkdir build
 cd build
 ../configure --target-list=riscv32-softmmu --prefix=/opt/qemu
@@ -59,6 +61,6 @@ cd where/to/repos/riscv-mini
 cd steps/1
 make
 make test
-```
 
-TODO: 説明, 動作確認
+```
+`Hello RISC-V M-Mode.` が表示されればこのステップは目標達成となります. このステップで使用するソースコードは main.c のみとなります. crt.S (=c runtime) などはriscv-probeでビルドしたものをそのまま使用します.
