@@ -1,3 +1,4 @@
 [submodule "riscv-probe"]
 	path = riscv-probe
 	url = https://github.com/michaeljclark/riscv-probe.git
+    ignore = dirty

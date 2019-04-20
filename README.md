@@ -13,37 +13,40 @@
 
 なおコンパイラはgcc, 実行環境はqemu, ライブラリとしてriscv-probeを使用します。
 
-### step1
+### [Step 1](steps/1/README.md)
 machine mode hello world.
 
-### step2
+### [Step 2](steps/2/README.md)
 machine mode with `ecall` exception.
 
-### step3
+### [Step 3](steps/3/README.md)
 machine mode with timer interrupt.
 
-### step4
+### [Step 4](steps/4/README.md)
 user mode hello world.
 
-### step5
+### [Step 5](steps/5/README.md)
 user mode hello world with syscall.
 
-### step6
+### [Step 6](steps/6/README.md)
 user mode loading with elf.
 
-### step7
+### [Step 7](steps/7/README.md)
 multiple user mode.
 
-### step8
+### [Step 8](steps/8/README.md)
 virtual address / page protection.
 
-### step9
+### [Step 9](steps/9/README.md)
+lazy loading.
+
+### [Step 10](steps/10/README.md)
 task state: ready, running and blocked.
 
-### step10
+### [Step 11](steps/5/README.md)
 thread, mutex, condition variable.
 
-### step11
+### [Step 12](steps/5/README.md)
 security (NX, SSP, ASLR, execute-only, SMEP/SMAP)
 
 ## References
@@ -59,6 +62,6 @@ https://github.com/riscv/riscv-elf-psabi-doc/blob/master/riscv-elf.md
 https://sifive.cdn.prismic.io/sifive%2F4d063bf8-3ae6-4db6-9843-ee9076ebadf7_fe310-g000.pdf
 (PLIC, UART register, etc)
 
-## riscv-qemu wiki
+### riscv-qemu wiki
 https://github.com/riscv/riscv-qemu/wiki
 

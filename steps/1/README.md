@@ -30,6 +30,10 @@ cd build
 make
 sudo make install
 ```
+パスを通します.
+```bash
+export PATH=/opt/rv32gc/bin:$PATH
+```
 
 ### setup riscv-qemu
 qemuもRV32のみを使用するため, 32-bitのビルドのみとします.
@@ -45,6 +49,10 @@ cd build
 ../configure --target-list=riscv32-softmmu --prefix=/opt/qemu
 make
 sudo make install
+```
+パスを通します.
+```bash
+export PATH=/opt/qemu/bin:$PATH
 ```
 
 ### setup riscv-probe
