@@ -7,9 +7,10 @@ step2では RISC-V の CPU 例外を発行する命令である`ecall` の処理
 test:
 	qemu-system-riscv32 -nographic -machine sifive_u -kernel $(target)
 ```
-となっていています. `make test` の実態は qemu の実行で `machine` (=機種)は `sifive_u`, `kernel` (=実行バイナリ)は `$(target)` が指定されていることがわかります. `$(target)` は `make` 時に作成される `m.elf` のことです. 
+となっていています. `make test` の実体は qemu の実行で `machine` (=機種)は `sifive_u`, `kernel` (=実行バイナリ)は `$(target)` が指定されていることがわかります. `$(target)` は `make` 時に作成される `m.elf` のことです. 
 ちなみに `m.mk` の `m` は machine mode の `m` です. RISC-Vの mode は権限の高い順に machine mode, supervisor mode, user mode が存在します.
 qemu のソースコードを見てみます. riscv-qemu/hw/riscv/sifive_u.c(55) に以下の記述があります.
+
 ```c
 static const struct MemmapEntry {
     hwaddr base;
@@ -52,16 +53,11 @@ static const struct MemmapEntry {
     rom_add_blob_fixed_as("mrom.reset", reset_vec, sizeof(reset_vec),
                           memmap[SIFIVE_U_MROM].base, &address_space_memory);
 ```
-`reset_vec[8]` に命令が書かれていています. この命令を cpu_to_le32 でエンディアン変換(RISC-Vはリトルエンディアン. ホストがx86ならリトルエンディアンなので変換なし)して, rom_add_blob_fixed_as の先で, memmap[SIFIVE_U_MROM].base に reset_vec を サイズ sizeof(reset_vec) 分コピーするというコードになっています. `reset_vec[8]`がやろうとしていることは, 1. 現在のプログラムカウンタ(=PC)を得る, 2. PCの24-Byte先にあるDRAM_BASEのアドレスを得る. 3. そこにジャンプする, です. 補足として[reset_vecが動く理由](#reset_vecが動く理由)を書きました.
+`reset_vec[8]` に命令が書かれていています. この命令を cpu_to_le32 でエンディアン変換[^1]して, `rom_add_blob_fixed_as` で, `memmap[SIFIVE_U_MROM].base` に `reset_vec` を サイズ `sizeof(reset_vec)` 分コピーするというコードになっています. `reset_vec[8]`がやろうとしていることは, 1. 現在のプログラムカウンタ(=PC)を得る, 2. PCの24-Byte先にあるDRAM_BASEの値を得る. 3. そこにジャンプする, です.
 
+TODO: objdumpして 0x80000000, ldscript
 
-
-<a name="reset_vecが動く理由"></a>reset_vecが動く理由
-実はreset_vec[8]のコメントと実装が間違っているため理解が困難です.
-```c
-        0x02028593,                    /*     addi   a1, t0, %pcrel_lo(1b) */
-```
-コメントの通りだとすると `0x02028593` は 12-bit 即値が 0 である `0x00028593`であるはずです([The RISC-V Instruction Set Manual 参照](https://content.riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf). また `a1` レジスタに値をロードして, `a1` レジスタは使わずに, `t0`レジスタのoffset 24-ByteからDRAM_BASEの値を取り出しているのは本来はバグのはずです. ですがこの命令の実行アドレスが 0x1000 であるため `auipc  t0, %pcrel_hi(dtb)` でロードした PC の上位 20-bit だけで, PCの下位 12-bit `t0` に加えなくても DRAM_BASE の値が取り出せています.
+[^1]: RISC-Vはリトルエンディアンです. ホストがリトルエンディアンならば変換はありません.
 
 - readelf, objdump
 - crt.Sの説明
