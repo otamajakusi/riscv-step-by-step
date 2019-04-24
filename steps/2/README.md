@@ -53,11 +53,55 @@ static const struct MemmapEntry {
     rom_add_blob_fixed_as("mrom.reset", reset_vec, sizeof(reset_vec),
                           memmap[SIFIVE_U_MROM].base, &address_space_memory);
 ```
-`reset_vec[8]` に命令が書かれていています. この命令を cpu_to_le32 でエンディアン変換[^1]して, `rom_add_blob_fixed_as` で, `memmap[SIFIVE_U_MROM].base` に `reset_vec` を サイズ `sizeof(reset_vec)` 分コピーするというコードになっています. `reset_vec[8]`がやろうとしていることは, 1. 現在のプログラムカウンタ(=PC)を得る, 2. PCの24-Byte先にあるDRAM_BASEの値を得る. 3. そこにジャンプする, です.
+`reset_vec[8]` に命令が書かれていています. この命令を cpu_to_le32 でエンディアン変換[^1]して, `rom_add_blob_fixed_as` で, `memmap[SIFIVE_U_MROM].base` に `reset_vec` を サイズ `sizeof(reset_vec)` 分コピーするというコードになっています. `reset_vec[8]`がやろうとしていることは, 1. 現在のプログラムカウンタ(=PC)を得る, 2. PCの24-Byte先にあるDRAM_BASEの値を得る. 3. そこにジャンプする, です[^2]. これで `memmap[SIFIVE_U_DRAM].base`の値 `0x80000000` にジャンプすることがわかりました.
 
-TODO: objdumpして 0x80000000, ldscript
+ようやくここからstep2です. `m.elf` のメモリレイアウトを見てみましょう.
+
+```bash
+$ cd riscv-mini/steps/2
+$ make
+$ riscv32-unknown-elf-readelf -l m.elf
+...
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  LOAD           0x000094 0x80000000 0x80000000 0x005c4 0x005c4 R E 0x4
+  LOAD           0x000658 0x800005c4 0x800005c4 0x00a9c 0x00a9c RW  0x4
+  LOAD           0x001100 0x80001060 0x80001060 0x00000 0x01010 RW  0x10
+...
+```
+と表示され VirtAddr(=仮想アドレス)が `0x80000000` で始まっているため, この `m.elf` は `0x80000000` から動作するようにレイアウトされることがわかります. (qemuがPhysAddr(=物理アドレス)を見てレイアウトしているかコードを見るとわかると思いますがこの `m.elf` はどちらも同じであるためひとまず気にしないこととします). このメモリレイアウトを指定しているのは `riscv-probe/env/qemu-sifive_u/default.lds` というリンカスクリプトです. `riscv-mini/mk/m.mk` でこのリンカスクリプトを指定しています. では実行してみましょう.
+```bash
+$ make test
+qemu-system-riscv32 -nographic -machine sifive_u -kernel m.elf
+Hello RISC-V M-Mode.
+ecall by machine mode at: 0x800000dc
+```
+
+`main.c` では riscv-probe の関数 `set_trap_fn` を使用し `trap_handler` で例外を捕捉できるようにし, `asm volatile ("ecall")` で `ecall` 命令を発行します. `ecall` 命令で発生した例外は `trap_handler` で捕捉され `mepc` を表示して終了します. `mepc` は上の実行結果では `0x800000dc` です. 
+
+`riscv32-unknown-elf-objdump -d m.elf`
+
+`riscv-probe/env/common/crtm.s` 
+
+
 
 [^1]: RISC-Vはリトルエンディアンです. ホストがリトルエンディアンならば変換はありません.
+[^2]: 以下のように
+```c
+        0x00000297,                    /* 1:  auipc  t0, %pcrel_hi(start) */` 
+        0x01828293,                    /*     addi   t0, t0, %pcrel_lo(1b) */
+        0xf1402573,                    /*     csrr   a0, mhartid  */
+#if defined(TARGET_RISCV32)
+        0x0002a283,                    /*     lw     t0, 0(t0) */
+#elif defined(TARGET_RISCV64)
+        0x0002b283,                    /*     ld     t0, 0(t0) */
+#endif
+        0x00028067,                    /*     jr     t0 */
+        0x00000000,
+        memmap[SIFIVE_U_DRAM].base, /* start: .dword DRAM_BASE */
+        0x00000000,
+```
+として `start:` のアドレスをとれば24 byteのオフセットも不要になりすっきりします. `addi   a1, t0, %pcrel_lo(1b)` も何をやりたいのかわかりません. あと `%pcrel_lo` は [RISC-V Assembly Programmer's Manual](https://github.com/riscv/riscv-asm-manual/blob/master/riscv-asm.md)の説明によれば `PC-relative (LO12)` だけですが, あまり見たことのない動きをします. 別の機会に説明します.
 
 - readelf, objdump
 - crt.Sの説明

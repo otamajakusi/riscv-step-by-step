@@ -54,6 +54,12 @@ security (NX, SSP, ASLR, execute-only, SMEP/SMAP)
 https://github.com/riscv/riscv-isa-manual/blob/master/release/riscv-privileged-v1.10.pdf
 (csr, virtual address, etc)
 
+### The RISC-V Instruction Set Manual 2.2
+https://github.com/riscv/riscv-isa-manual/blob/master/release/riscv-spec-v2.2.pdf
+
+### RISC-V Assembly Programmer's Manual
+https://github.com/riscv/riscv-asm-manual/blob/master/riscv-asm.md
+
 ### RISC-V ELF psABI specification
 https://github.com/riscv/riscv-elf-psabi-doc/blob/master/riscv-elf.md
 (calling convention, etc)
