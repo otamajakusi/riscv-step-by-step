@@ -128,7 +128,7 @@ $ riscv32-unknown-elf-objdump -d m.elf
 80000058:       114000ef                jal     ra,8000016c <trap_handler>
 ...
 ```
-`trap_vector` はSP(=Stack Pointer)に例外/割り込みが発生した際のregisterを保存し, sp(Stack Pointer), mcause(例外/割り込み要因), mepc(例外/割り込みアドレス) を引数として `trap_handler`を呼び出します. ソースコードは `riscv-probe/env/common/crtm.s` です.
+`trap_vector` はSP(=Stack Pointer)に例外/割り込みが発生した際のregisterを保存し, sp(Stack Pointer), mcause(例外/割り込み要因), mepc(例外/割り込みアドレス) を引数として `trap_handler`を呼び出します. mcause, mepcはそれぞれRISC-VのCSRレジスタ`mcause`, `mepc`から`csrr`命令で取り出します. ソースコードは `riscv-probe/env/common/crtm.s` です.
 では `m.elf` を実行してみましょう.
 
 ```bash
