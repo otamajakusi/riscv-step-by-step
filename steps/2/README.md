@@ -3,6 +3,7 @@
 ## machine mode with `ecall` exception.
 step2では RISC-V の CPU 例外を発行する命令である`ecall` の処理を実装しますが, プログラムカウンタ(=PC)がどのように遷移するのかを説明するために,  step1 の `make test` から振り返ります.
 `make test` は `steps/1/Makefile` から includeされる `../../mk/m.mk`に書かれていて
+
 ```Makefile
 test:
 	qemu-system-riscv32 -nographic -machine sifive_u -kernel $(target)
@@ -54,7 +55,7 @@ static const struct MemmapEntry {
     rom_add_blob_fixed_as("mrom.reset", reset_vec, sizeof(reset_vec),
                           memmap[SIFIVE_U_MROM].base, &address_space_memory);
 ```
-`reset_vec[8]` に命令が書かれていています. この命令を cpu_to_le32 でエンディアン変換[^1]して, `rom_add_blob_fixed_as` で, `memmap[SIFIVE_U_MROM].base` に `reset_vec` を サイズ `sizeof(reset_vec)` 分コピーするというコードになっています. `reset_vec[8]`がやろうとしていることは, 1. 現在のプログラムカウンタ(=PC)を得る, 2. PCの24-Byte先にあるDRAM_BASEの値を得る. 3. そこにジャンプする, です[^2]. これで `memmap[SIFIVE_U_DRAM].base`の値 `0x80000000` にジャンプすることがわかりました.
+`reset_vec[8]` に命令が書かれていています. この命令を cpu_to_le32 でエンディアン変換[^1](#1)して, `rom_add_blob_fixed_as` で, `memmap[SIFIVE_U_MROM].base` に `reset_vec` を サイズ `sizeof(reset_vec)` 分コピーするというコードになっています. `reset_vec[8]`がやろうとしていることは, 1. 現在のプログラムカウンタ(=PC)を得る, 2. PCの24-Byte先にあるDRAM_BASEの値を得る. 3. そこにジャンプする, です[^2](#2). これで `memmap[SIFIVE_U_DRAM].base`の値 `0x80000000` にジャンプすることがわかりました.
 
 ようやくここからstep2です. `m.elf` のメモリレイアウトを見てみましょう.
 
@@ -70,7 +71,13 @@ Program Headers:
   LOAD           0x001100 0x80001060 0x80001060 0x00000 0x01010 RW  0x10
 ...
 ```
-と表示されます. この `m.elf` は VirtAddr (=仮想アドレス)が`0x80000000` からレイアウトされることがわかります[^3]. このメモリレイアウトを指定しているのは `riscv-probe/env/qemu-sifive_u/default.lds` というリンカスクリプトです. `riscv-mini/mk/m.mk` でこのリンカスクリプトを指定しています. `m.elf` の先頭の disassemble を見てみます.
+と表示されます. この `m.elf` は VirtAddr (=仮想アドレス)が`0x80000000` からレイアウトされることがわかります[^3](#3). このメモリレイアウトを指定しているのは `riscv-probe/env/qemu-sifive_u/default.lds` というリンカスクリプトです. `riscv-mini/mk/m.mk` でこのリンカスクリプトを指定しています. 
+
+```bash
+$ riscv32-unknown-elf-objdump -d m.elf
+```
+
+として`m.elf` の disassemble を先頭から見てみます.
 
 ```asm
 80000000 <_start>:
@@ -156,10 +163,12 @@ $ riscv32-unknown-elf-objdump -d m.elf | grep 800000dc -B 10
 2. 0x80000000 の先頭で `trap_vector` を設定し, mainにジャンプ.
 3. mainで `trap_vector` から呼び出される関数 `handler` を設定し ecall 命令を発行
 4. CPUは trap_vector に遷移し, `handler` を呼び出す.
-5. exitを呼び出し終了[^4]
+5. exitを呼び出し終了[4](#4)
 
-[^1]: RISC-Vはリトルエンディアンです. ホストがリトルエンディアンならば変換はありません.
-[^2]: 以下のように
+###### 1
+RISC-Vはリトルエンディアンです. ホストがリトルエンディアンならば変換はありません.</small>
+###### 2
+以下のように
 ```c
         0x00000297,                    /* 1:  auipc  t0, %pcrel_hi(start) */` 
         0x01828293,                    /*     addi   t0, t0, %pcrel_lo(1b) */
@@ -176,5 +185,7 @@ $ riscv32-unknown-elf-objdump -d m.elf | grep 800000dc -B 10
 ```
 として `start:` のアドレスをとれば24 byteのオフセットも不要になりすっきりします. `addi   a1, t0, %pcrel_lo(1b)` も何をやりたいのかわかりません. あと `%pcrel_lo` は [RISC-V Assembly Programmer's Manual](https://github.com/riscv/riscv-asm-manual/blob/master/riscv-asm.md)の説明によれば `PC-relative (LO12)` だけですが, あまり見たことのない動きをします. 別の機会に説明します.
 
-[^3]: qemuがVirtAddrもしくはPhysAddr(=物理アドレス)のどちらを見てレイアウトしているかはコードを見るとわかると思いますがこの `m.elf` はどちらも同じであるためひとまず気にしないこととします.
-[^4]: exitは別の機会に説明します.
+###### 3
+qemuがVirtAddrもしくはPhysAddr(=物理アドレス)のどちらを見てレイアウトしているかはコードを見るとわかると思いますがこの `m.elf` はどちらも同じであるためひとまず気にしないこととします.
+###### 4
+exitは別の機会に説明します.
