@@ -8,7 +8,7 @@ step4ではuser modeでプログラムを実行しますが大きく2つのこ�
 
 ### ELF
 ELFは実行ファイル, 共有ライブラリ, オブジェクトファイルなどを格納するファイル形式の1つで, ELF Headerと必要に応じてProgram Header, Section Headerとそれらヘッダーから参照されるエントリで構成されます. 今回は実行ファイルに焦点を絞ってELFの説明をおこないます.
-ELF形式の実行ファイルはELF Header, Program Header, Section Headerから構成されます[^1](1). `riscv-probe/libfemto/include/elf.h` に定義があるためこれを使用します.
+ELF形式の実行ファイルはELF Header, Program Header, Section Headerから構成されます[^1](1). `riscv-probe/libfemto/include/elf.h` にある定義を使用します.
 
 #### ELF Header
 ```c
@@ -44,9 +44,9 @@ typedef struct {
 } Elf32_Ehdr;
 ```
 重要なエントリのみ説明します.
-`e_ident[EI_CLASS]` に `ELFCLASS32` あるいは `ELFCLASS64`が設定されています[^2](2). この値をもとにELF形式の32-bitあるいは64-bitを判定します. 今回は32-bitのRV32を扱うため`Elf32_Ehdr` を使用します.
-`e_entry` はプログラムのメモリにレイアウトされた後の実行開始アドレスが格納されます.
-`e_phoff`, `e_phentsize` そして `e_phnum` はProgram Headerのそれぞれファイルオフセット, サイズ, 数を表します. 同様に , `e_shoff`, `e_shentsize` そして `e_shnum` はSection Headerのそれぞれファイルオフセット, サイズ, 数を表します. `p_phentsize`, `e_shentsize` は `e_ident[EI_CLASS]` により32-bitあるいは64-bitが判定できればProgram HeaderあるいはSection Headerのサイズは決まるのでなくても問題ないエントリです.
+`e_ident[EI_CLASS]` には `ELFCLASS32` あるいは `ELFCLASS64`が格納されます[^2](2). この値をもとにELF形式の32-bitあるいは64-bitを判定します. 今回は32-bitのRV32を扱うため`Elf32_Ehdr` を使用します.
+`e_entry` にはプログラムがメモリにレイアウトされた後の実行開始アドレスが格納されます.
+`e_phoff`, `e_phentsize` そして `e_phnum` にはProgram Headerのそれぞれファイルオフセット, サイズ, 数が格納されます. 同様に , `e_shoff`, `e_shentsize` そして `e_shnum` にはSection Headerのそれぞれファイルオフセット, サイズそして数が格納されます[^3](3).
 
 #### Program Header
 ```c
@@ -61,6 +61,31 @@ typedef struct {
     Elf32_Word  p_align;
 } Elf32_Phdr;
 ```
+Program HeaderはELF Header e_phoffで示されるファイルオフセットに配置されますが, 通常e_phoffははELF Headerの終わりを示します. Program Headerはプログラム実行に必要なエントリの情報が格納されているためこれをパースしてエントリをメモリにレイアウトすればプログラムのロードは完了となります.
+`p_type` にはこのProgram Headerが示すエントリのタイプ情報が格納されます. 実行プログラムのロード対象となるタイプは `PT_LOAD` です.
+`p_offset` にはこのProgram Headerが示すエントリのファイルオフセットが格納されます.
+`p_vaddr` にはこのProgram Headerが示すエントリをロードするアドレス, `p_filesz` にはそのサイズがそれぞれ格納されます. `p_memsz` にはProgram Headerが示すエントリに必要なサイズが格納されます. 以下に `p_vaddr`, `p_filesz` そして `p_memsz` の関係を示します.
+
+```text
+        +--------+ ^
+        |        | |
+        |  zero  | | p_memsz (エントリが必要なサイズ)
+        |        | |
+        +--------+ | ^
+        |        | | |
+        |  data  | | | p_filesz (ELFかロード(=コピー)が必要なサイズ)
+        |        | | |
+p_vaddr +--------+ v v
+```
+
+Section Headerはプログラムのロードに不要なため説明を省略します.
+
+ELF形式の実行ファイルのロードについてまとめると, 1. ELF Header`e_ident[EI_CLASS]` など確認, 2. ELF Header `e_phoff`, `e_phnum` からProgram Headerを取り出し, 3. Program Header `p_type` が `PT_LOAD` であることを確認, 4. メモリ領域 `max(p_filesz, p_memsz)` を `p_vaddr` アドレスから確保, 5. ELFファイル `p_offset` オフセットからアドレス `p_vaddr` にサイズ `p_filesz` コピーする. 6. `3, 4, 5`をすべての Program Headerに対して実行する.
+
+
+
+
+
 
 ### CPU Cache
 
@@ -72,6 +97,11 @@ Section HeaderはProgram Headerで参照されるセグメントをロードす�
 
 ###### 2
 `EI_ELFCLASS128` はわかりません.
+
+###### 3
+`p_phentsize`, `e_shentsize` は `e_ident[EI_CLASS]` により32-bitあるいは64-bitが判定できればProgram HeaderあるいはSection Headerのサイズは決まるのでなくても問題ないエントリと言えます.
+
+----
 
 Physical Memory Protectionは指定されるPhysical Address領域へのアクセスをhartごとに制限する仕組みで, machine modeではPhysical Addressへのアクセスは
 
