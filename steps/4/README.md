@@ -61,28 +61,59 @@ typedef struct {
     Elf32_Word  p_align;
 } Elf32_Phdr;
 ```
-Program HeaderはELF Header e_phoffで示されるファイルオフセットに配置されますが, 通常e_phoffははELF Headerの終わりを示します. Program Headerはプログラム実行に必要なエントリの情報が格納されているためこれをパースしてエントリをメモリにレイアウトすればプログラムのロードは完了となります.
-`p_type` にはこのProgram Headerが示すエントリのタイプ情報が格納されます. 実行プログラムのロード対象となるタイプは `PT_LOAD` です.
-`p_offset` にはこのProgram Headerが示すエントリのファイルオフセットが格納されます.
-`p_vaddr` にはこのProgram Headerが示すエントリをロードするアドレス, `p_filesz` にはそのサイズがそれぞれ格納されます. `p_memsz` にはProgram Headerが示すエントリに必要なサイズが格納されます. 以下に `p_vaddr`, `p_filesz` そして `p_memsz` の関係を示します.
+Program HeaderはELF Header e_phoffで示されるファイルオフセットに配置されますが, 通常e_phoffははELF Headerの終わりを示します. Program Headerはプログラム実行に必要なエントリ(=プログラムセグメント)の情報が格納されているためこれをパースしてそのプログラムセグメントをメモリにレイアウトすればプログラムのロードは完了となります.
+`p_type` にはこのプログラムセグメントのタイプ情報が格納されます. 実行プログラムのロード対象となるタイプは `PT_LOAD` です.
+`p_offset` にはこのプログラムセグメントのファイルオフセットが格納されます.
+`p_vaddr` にはこのプログラムセグメントをロードするアドレス, `p_filesz` にはそのサイズがそれぞれ格納されます. `p_memsz` にはプログラムセグメントに必要とされるサイズが格納されます. 以下に `p_vaddr`, `p_filesz` そして `p_memsz` の関係を示します.
 
 ```text
         +--------+ ^
         |        | |
-        |  zero  | | p_memsz (エントリが必要なサイズ)
+        |  zero  | | p_memsz (プログラムセグメントに必要なサイズ)
         |        | |
         +--------+ | ^
         |        | | |
-        |  data  | | | p_filesz (ELFかロード(=コピー)が必要なサイズ)
+        |  data  | | | p_filesz (ELFからロード(=コピー)が必要なサイズ)
         |        | | |
 p_vaddr +--------+ v v
 ```
 
-Section Headerはプログラムのロードに不要なため説明を省略します.
-
 ELF形式の実行ファイルのロードについてまとめると, 1. ELF Header`e_ident[EI_CLASS]` など確認, 2. ELF Header `e_phoff`, `e_phnum` からProgram Headerを取り出し, 3. Program Header `p_type` が `PT_LOAD` であることを確認, 4. メモリ領域 `max(p_filesz, p_memsz)` を `p_vaddr` アドレスから確保, 5. ELFファイル `p_offset` オフセットからアドレス `p_vaddr` にサイズ `p_filesz` コピーする. 6. `3, 4, 5`をすべての Program Headerに対して実行する.
+Section Headerはプログラムのロードに不要なため説明を省略します.
+readelfを使用してProgram Headerを見てみることとします.
 
+```bash
+$ riscv32-unknown-elf-readelf -l steps/3/m.elf
 
+Elf file type is EXEC (Executable file)
+Entry point 0x80000000
+There are 3 program headers, starting at offset 52
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  LOAD           0x000094 0x80000000 0x80000000 0x00764 0x00764 R E 0x4
+  LOAD           0x0007f8 0x80000764 0x80000764 0x008fc 0x008fc RW  0x4
+  LOAD           0x001100 0x80001060 0x80001060 0x00000 0x01010 RW  0x10
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     .text .rodata
+   01     .data
+   02     .bss
+```
+
+`steps/3/m.elf` は3つのProgram Headerから構成されていることがわかります[^4](4). Offset, VirtAddr, FileSiz, MemSizはそれぞれ上で説明した, p_offset, p_vaddr, p_filesz, p_memszに対応します. Flgは1番目のプログラムセグメントが `RE`(Read and Execute), 2番目と3番目のプログラムセグメントが `RW`(Read and Write) であることがわかります. 下の`Section to Segment mapping:` と書かれた部分にはプログラムセグメントに格納されるデータの種別が書かれています. `.text` は命令, `.rodata`は読み込み専用のデータ, `.data`は読み書きを行うデータ, `.bss` は初期値0のデータです. `.text`, `.rodata` は1番目のプログラムセグメントなので `RE`, `.data` は2番目のプログラムセグメントなので `RW`, 同様に `.bss` も`RW`で配置されます.
+
+さて, ELFをロードする方法は以上となりますがどこからELFファイルをロードするか考えなくてはなりません. このシステムは現時点で外部からデータを取得できません. 今回はプログラム内部にuser modeプログラムを保持し, そこからELFをロードする方法をとります.
+
+ディレクトリ構成説明する
+
+```bash
+$ riscv32-unknown-elf-objcopy \
+    -I binary -O elf32-littleriscv -B riscv m.elf m.elf.o \
+    --redefine-sym _binary_m_elf_start=m_start \
+    --redefine-sym _binary_m_elf_end=m_end
+```
 
 
 
@@ -100,6 +131,9 @@ Section HeaderはProgram Headerで参照されるセグメントをロードす�
 
 ###### 3
 `p_phentsize`, `e_shentsize` は `e_ident[EI_CLASS]` により32-bitあるいは64-bitが判定できればProgram HeaderあるいはSection Headerのサイズは決まるのでなくても問題ないエントリと言えます.
+
+###### 4
+`riscv-probe/env/default/default.lds` によりプログラムセグメントが構成されます.
 
 ----
 
