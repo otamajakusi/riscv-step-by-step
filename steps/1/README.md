@@ -68,7 +68,9 @@ make
 cd where/to/repos/riscv-mini
 cd steps/1
 make
-make test
+make run
 
 ```
 `Hello RISC-V M-Mode.` が表示されればこのステップは目標達成となります. このステップで使用するソースコードは main.c のみとなります. crt.S (=c runtime) などはriscv-probeでビルドしたものをそのまま使用します.
+
+なお `make run` で開始したプログラムは別のterminalから `make stop` もしくは `killall qemu-system-riscv32` として終了させます.

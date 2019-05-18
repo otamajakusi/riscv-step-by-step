@@ -25,11 +25,14 @@ RISC-Vの割り込みは CLINT(Core Level Interruptor) あるいは PLIC (Platfo
 [SiFive FE310-G000 Manual](https://sifive.cdn.prismic.io/sifive%2F4d063bf8-3ae6-4db6-9843-ee9076ebadf7_fe310-g000.pdf) `11.1 E31 CLINT Address Map`によれば `mtimecmp for hart0` はアドレス `0x02004000`, `mtime` はアドレス `0x0200BFF8` です. `hart` は RICS-V の hardware thread のことです. SiFive FE310-G000はhartが1つなのでhart0のみが定義されています[^3](3).
 
 ## implementation
-riscv-qemu/include/hw/riscv/sifive_clint.h(51) に以下の値があります. 名前から想像してこれがtimebaseであると予測します[^4](4).
+`riscv-qemu/include/hw/riscv/sifive_clint.h(51)` に以下の値があります. 名前から想像してこれがtimebaseであると予測します[^4](4).
+
 ```c
     SIFIVE_CLINT_TIMEBASE_FREQ = 10000000
 ```
 main.cは上記の説明をそのまま実装したものですので説明は省略しますが, `riscv-probe/env/common/crtm.s` にある `mret` だけ説明します. `mret`命令は, 1. `mstatus.MPP` を mode に設定し, 2. `mstatus.MPIE` を `mstatus.MIE` にコピーし, 3. pc を mepc に設定します[^5](5). この動作により割り込みが発生したPCから動作が再開されます.
+
+最後に `make run` して1秒ごと表示が出ることを確認します.
 
 ###### 1
 `ソフトウェア割り込み` とは特定の命令によって発生する割り込みのことですが, `ecall` 命令の説明には `environment-call-from-M-mode exception` と説明されているように`exception` という言葉を使っています.

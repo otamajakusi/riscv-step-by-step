@@ -1,14 +1,14 @@
 # Step 2
 
 ## machine mode with `ecall` exception.
-step2では RISC-V の CPU 例外を発行する命令である`ecall` の処理を実装しますが, プログラムカウンタ(=PC)がどのように遷移するのかを説明するために,  step1 の `make test` から振り返ります.
-`make test` は `steps/1/Makefile` から includeされる `../../mk/m.mk`に書かれていて
+step2では RISC-V の CPU 例外を発行する命令である`ecall` の処理を実装しますが, プログラムカウンタ(=PC)がどのように遷移するのかを説明するために,  step1 の `make run` から振り返ります.
+`make run` は `steps/1/Makefile` から includeされる `../../mk/m.mk`に書かれていて
 
 ```Makefile
 test:
 	qemu-system-riscv32 -nographic -machine sifive_u -kernel $(target)
 ```
-となっていています. `make test` の実体は qemu の実行で `machine` (=機種)は `sifive_u`, `kernel` (=実行バイナリ)は `$(target)` が指定されていることがわかります. `$(target)` は `make` 時に作成される `m.elf` のことです. 
+となっていています. `make run` の実体は qemu の実行で `machine` (=機種)は `sifive_u`, `kernel` (=実行バイナリ)は `$(target)` が指定されていることがわかります. `$(target)` は `make` 時に作成される `m.elf` のことです. 
 ちなみに `m.mk` の `m` は machine mode の `m` です. RISC-Vの mode は権限の高い順に machine mode, supervisor mode, user mode が存在します.
 qemu のソースコードを見てみます. riscv-qemu/hw/riscv/sifive_u.c(55) に以下の記述があります.
 
@@ -132,7 +132,7 @@ $ riscv32-unknown-elf-objdump -d m.elf
 では `m.elf` を実行してみましょう.
 
 ```bash
-$ make test
+$ make run
 qemu-system-riscv32 -nographic -machine sifive_u -kernel m.elf
 Hello RISC-V M-Mode.
 ecall by machine mode at: 0x800000dc
