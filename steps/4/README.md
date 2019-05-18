@@ -120,21 +120,20 @@ Makefile  crt.S  main.c
 ```
 `m` ディレクトリと異なり `u/crt.S` があることがわかります. user modeで例外/割り込み処理をしないため `crt.S` は machine mode のものと別にしています. なお machine mode の`crt.S` も以降のstepでriscv-proveのものから変更を行います[^6](6).
 
+### u.elfの埋め込み
+さて, ELFファイルをロードする方法を説明してu.elfを作成することはできました. 残りはu.elfの保存場所です. このシステムは現時点で外部からデータを取得できません. 今回はプログラム内部にuser modeプログラムを保持し, そこからELFファイルをロードします.
+`m/Makefile` に以下の記述があります.
+```Makefile
+../u/u.elf:
+        $(MAKE) -C ../u
 
-さて, ELFファイルをロードする方法は以上となりますがどこからELFファイルをロードするか考えなくてはなりません. このシステムは現時点で外部からデータを取得できません. 今回はプログラム内部にuser modeプログラムを保持し, そこからELFファイルをロードする方法をとります.
-
-
-
-ディレクトリ構成説明する
-
-```bash
-$ riscv32-unknown-elf-objcopy \
-    -I binary -O elf32-littleriscv -B riscv m.elf m.elf.o \
-    --redefine-sym _binary_m_elf_start=m_start \
-    --redefine-sym _binary_m_elf_end=m_end
+u.elf.o: ../u/u.elf
+        $(OBJCOPY) -I binary -O elf32-littleriscv -B riscv $< $@ \
+                --redefine-sym _binary____u_u_elf_start=u_start \
+                --redefine-sym _binary____u_u_elf_end=u_end \
+                --redefine-sym _binary____u_u_elf_size=u_size
 ```
-
-
+これは, `u/u.elf` をbinaryとして扱い, RISC-Vのオブジェクトファイルに変換しています. `--redefine-sym` は変換時にsymbol名を変更するオプションです. 変換された `u.elf.o` は `m.elf` にリンクされます. 
 
 
 ### CPU Cache
@@ -158,7 +157,7 @@ Section HeaderはProgram Headerで参照されるセグメントをロードす�
 `riscv-probe/env/default/default.lds` によりプログラムセグメントが構成されます.
 
 ###### 6
-`asm.s` と `asm.S`. 前者はgccによりpreprocessされない, 後者はpreprocessされるという違いがあります. https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Overall-Options.html#Overall-Options
+`file.s` と `file.S`. 前者はgccによりpreprocessされない, 後者はpreprocessされるという違いがあります. https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Overall-Options.html#Overall-Options
 
 
 

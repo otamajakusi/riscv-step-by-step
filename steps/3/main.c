@@ -46,8 +46,8 @@ int main()
     printf("Hello RISC-V M-Mode.\n");
     set_trap_fn(handler);
     write_csr(mie, read_csr(mie) | MIP_MTIP);
-    write_csr(mstatus, (read_csr(mstatus) | MSTATUS_MIE));
     handle_timer_interrupt();
+    write_csr(mstatus, (read_csr(mstatus) | MSTATUS_MIE));
     while (1);
     return 0;
 }

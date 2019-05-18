@@ -3,6 +3,7 @@
 #include "arch/riscv/trap.h"
 #include "arch/riscv/encoding.h"
 #include "arch/riscv/machine.h"
+#include "elfldr.h"
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_CLINT_TIMEBASE_FREQ  10000000
@@ -13,6 +14,8 @@
 
 #define SIFIVE_TIMECMP_ADDR (CLINT_BASE + SIFIVE_TIMECMP_BASE)
 #define SIFIVE_TIME_ADDR    (CLINT_BASE + SIFIVE_TIME_BASE)
+
+extern uintptr_t u_elf_start;
 
 static void handle_timer_interrupt()
 {
@@ -32,7 +35,6 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     if (mcause == cause_machine_ecall) {
         printf("ecall by machine mode at: %p\n", mepc);
     } else if ((mcause & ~(1u << 31)) == intr_m_timer) {
-        printf("machine mode timer interrupt: %p\n", mepc);
         handle_timer_interrupt();
         return;
     } else {
@@ -46,8 +48,12 @@ int main()
     printf("Hello RISC-V M-Mode.\n");
     set_trap_fn(handler);
     write_csr(mie, read_csr(mie) | MIP_MTIP);
-    write_csr(mstatus, (read_csr(mstatus) | MSTATUS_MIE));
     handle_timer_interrupt();
-    while (1);
+    write_csr(mstatus, (read_csr(mstatus) | MSTATUS_MIE));
+    const void* entry = load_elf((void*)&u_elf_start);
+    // jump entry with M-Mode
+    write_csr(mepc, entry);
+    write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_M << 11) | (1u << 7));
+    mret();
     return 0;
 }

@@ -2,6 +2,6 @@
 
 int main()
 {
-    printf("Hello RISC-V M-Mode.\n");
+    printf("Hello RISC-V U-Mode.\n");
     return 0;
 }
