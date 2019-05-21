@@ -134,7 +134,29 @@ u.elf.o: ../u/u.elf
 ```
 これは, `u/u.elf` をbinaryとして扱い, RISC-Vのオブジェクトファイルに変換しています. `--redefine-sym` は変換時にsymbol名を変更するオプションです. 変換された `u.elf.o` は `m.elf` にリンクされます. 
 
-## CPU Cache
+## CPU Cache Operation[^7](7)
+RISC-Vのcacheアーキテクチャは実装依存という扱いなのか, [Privileged Architecture](<https://github.com/otamajakusi/riscv-mini#privileged-architecture-version-110>) に記述はなく [The RISC-V Instruction Set Manual](https://github.com/otamajakusi/riscv-mini#the-risc-v-instruction-set-manual-22) には `FENCE` と `FENCE.I` 命令の説明があるのみです. 多くのCPUは命令キャッシュ(I-cache, $I)とデータキャッシュ(D-cache, $D)が実装されていますが, ここのRISC-Vでも同様の実装がされているものとして説明を行います. 以下はI-cache, D-cache, CPU coreそしてmemoryの関係を示した図です.
+
+```
+  +------------------+
+  |     CPU core     |
+  +------------------+
+      ^         ^
+      |         |
+      |         v
+  +-------+ +-------+
+  |I-cache| |D-cache|
+  +-------+ +-------+
+      ^         ^
+      |         |
+      |         v
+  +-----------------+
+  |      memory     |
+  +-----------------+
+```
+
+CPU cacheは 1. CPUがfetchするアドレスのデータがcacheに存在すればそのデータをCPUに返す, 2. 無ければmemoryからデータをコピーしそのデータをCPUに返す, という動作をします. D-cacheのデータは図の上下方向にデータが転送されますが, I-cacheのデータは常にmemoryからI-cache方向, I-cacheからCPU core方法に転送されます.
+今回ELFファイルによる実行ファイルのロード方法を説明しましたがmemory -> D-cache -> CPU core -> D-cache -> memoryという経路でデータがコピーされただけでデータを命令として実行するためにはI-cacheにデータを転送する必要があります. `FENCE.I` 命令はその命令発行時に I-cache に存在するデータを無効化させ, 結果としてmemoryからI-cacheでデータを転送します. 
 
 
 ###### 1
@@ -154,3 +176,6 @@ Section HeaderはProgram Headerで参照されるセグメントをロードす�
 
 ###### 6
 `file.s` と `file.S`. 前者はgccによりpreprocessされない, 後者はpreprocessされるという違いがあります. https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Overall-Options.html#Overall-Options
+
+###### 7
+RISC-Vのcache操作はhartsごと行う必要がありますが, 今回のシステムはhartsが1つなので説明を省略します.

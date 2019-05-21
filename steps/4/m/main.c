@@ -54,6 +54,7 @@ int main()
     // jump entry with M-Mode
     write_csr(mepc, entry);
     write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_M << 11) | (1u << 7));
+    asm volatile("fence.i");
     mret();
     return 0;
 }
