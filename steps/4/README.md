@@ -158,6 +158,13 @@ RISC-Vのcacheアーキテクチャは実装依存という扱いなのか, [Pri
 CPU cacheは 1. CPUがfetchするアドレスのデータがcacheに存在すればそのデータをCPUに返す, 2. 無ければmemoryからデータをコピーしそのデータをCPUに返す, という動作をします. D-cacheのデータは図の上下方向にデータが転送されますが, I-cacheのデータは常にmemoryからI-cache方向, I-cacheからCPU core方法に転送されます.
 今回ELFファイルによる実行ファイルのロード方法を説明しましたがmemory -> D-cache -> CPU core -> D-cache -> memoryという経路でデータがコピーされただけでデータを命令として実行するためにはI-cacheにデータを転送する必要があります. `FENCE.I` 命令はその命令発行時に I-cache に存在するデータを無効化させ, 結果としてmemoryからI-cacheを経由してCPU coreにデータを転送します.
 
+最後に動作を確認します.
+
+```bash
+$ make
+$ make run
+```
+
 ###### 1
 Section HeaderはProgram Headerで参照されるセグメントをロードするためだけの目的では不要ですがobjdumpなどのtoolでは参照されます.
 

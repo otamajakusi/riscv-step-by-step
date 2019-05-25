@@ -3,6 +3,7 @@
 #include "arch/riscv/trap.h"
 #include "arch/riscv/encoding.h"
 #include "arch/riscv/machine.h"
+#include "arch/riscv/csr.h"
 #include "elfldr.h"
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
@@ -38,9 +39,26 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         handle_timer_interrupt();
         return;
     } else {
-        printf("unknown exception or interrupt: %x, %p\n", mcause, mepc);
+        printf("unknown exception or interrupt: %x, %p, %x\n",
+                mcause, mepc, read_csr(mstatus) & MSTATUS_MPP);
     }
     exit(0);
+}
+
+/*
+ * Set RWX 0..3GiB for each 1GiB-region.
+ * Note: 0..4GiB by one 4GiB-region doesn't work, by mis-configuration or bug?
+ */
+static void setup_pmp()
+{
+    uint32_t base = 0u;
+    uint32_t len = 0x40000000u;
+    for (size_t i = 0; i < 3; i ++) {
+        uint32_t pmpaddr = ((base + len * i) >> 2) | ((len >> 3) - 1);
+        write_csr_enum(csr_pmpaddr0 + i, pmpaddr);
+        uint32_t cfg0 = read_csr(pmpcfg0);
+        write_csr(pmpcfg0, cfg0 | ((PMP_NAPOT | PMP_X | PMP_W | PMP_R) << (i * 8)));
+    }
 }
 
 int main()
@@ -51,9 +69,11 @@ int main()
     handle_timer_interrupt();
     write_csr(mstatus, (read_csr(mstatus) | MSTATUS_MIE));
     const void* entry = load_elf((void*)&u_elf_start);
-    // jump entry with M-Mode
+    setup_pmp();
+    // jump entry with U-Mode
     write_csr(mepc, entry);
-    write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_M << 11) | (1u << 7));
+    write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11) | MSTATUS_MPIE);
+    asm volatile("fence.i");
     mret();
     return 0;
 }

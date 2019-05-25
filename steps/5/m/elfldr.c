@@ -6,7 +6,7 @@
 #include "elf.h"
 #pragma GCC diagnostic pop
 
-#define ENABLE_DUMP
+//#define ENABLE_DUMP
 
 #if defined(ENABLE_DUMP)
 static void dump_phdr(const Elf32_Phdr* phdr)
