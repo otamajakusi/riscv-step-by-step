@@ -12,7 +12,7 @@ machine modeはdefaultで物理領域にアクセスできますが, supervisor 
 
 ### pmpaddr, pmpcfg CSR
 PMPに関するCSRは pmpaddr0 - pmpaddr15 と pmp0cfg - pmp15cfg あり16の領域をそれぞれ設定可能です. レジスタの詳細は [Privileged Architecture Version 1.10](https://github.com/riscv/riscv-isa-manual/blob/master/release/riscv-privileged-v1.10.pdf) `3.6.1 Physical Memory Protection CSRs`にありますが, 今回の実装では 0- 3GiB の領域を `naturally aligned power-of-2 regions (NAPOT)` を使用して0-1GiB, 1GiB-2GiB, 2GiB-3Gibの3領域をuser modeにRWXで許可します[^2](2). 
-pmpaddrに関してだけコードの説明をします. アドレスは領域の長さと境界が一致する値で4Bアドレス, つまりバイトアドレスを4で割った(=2bit右シフトした)値(=a), 領域の長さは2のべき乗で, 8で割った(=3bit右シフトした)値から1引いた値(=l)のaとlをそれぞれbit ORした値をpmpaddrに設定します.
+pmpaddrに関してだけコードの説明をします. アドレスは領域サイズと境界が一致する値で4Bアドレス, つまりバイトアドレスを4で割った(=2bit右シフトした)値(=addr), 領域サイズは2のべき乗で, 8で割った(=3bit右シフトした)値から1引いた値(=size)のaddrとsizeをそれぞれbit ORした値をpmpaddrに設定します.
 
 最後に動作を確認します.
 

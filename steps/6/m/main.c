@@ -50,12 +50,12 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 }
 
 /*
- * Set RWX addr 0x80100000, length: 1MiB
+ * Set RWX addr 0x80100000, length: 32KiB
  */
 static void setup_pmp()
 {
     uint32_t addr = 0x80100000u;
-    uint32_t len = 0x100000u;
+    uint32_t len = 0x8000u;
     uint32_t pmpaddr = (addr >> 2) | ((len >> 3) - 1);
     write_csr(pmpaddr0, pmpaddr);
     write_csr(pmpcfg0, PMP_NAPOT | PMP_X | PMP_W | PMP_R);
