@@ -32,10 +32,10 @@ user mode hello world.
 user mode hello world with system call.
 
 ### [Step 7](steps/7/README.md)
-multiple user mode.
+virtual address / page protection.
 
 ### [Step 8](steps/8/README.md)
-virtual address / page protection.
+multiple user mode.
 
 ### [Step 9](steps/9/README.md)
 lazy loading.
