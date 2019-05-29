@@ -6,6 +6,7 @@
 #include "arch/riscv/csr.h"
 #include "elfldr.h"
 #include "syscall.h"
+#include "vm.h"
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_CLINT_TIMEBASE_FREQ  10000000
@@ -67,10 +68,12 @@ int main()
     set_trap_fn(handler);
     write_csr(mie, read_csr(mie) | MIP_MTIP);
     handle_timer_interrupt();
-    write_csr(mstatus, (read_csr(mstatus) | MSTATUS_MIE));
-    const void* entry = load_elf((void*)&u_elf_start);
     setup_pmp();
+    init_pte();
+    setup_pte(0x00000000, 0x80100000, 0x1000, 1, 0, 1);
+    setup_pte(0x00001000, 0x80101000, 0x1000, 1, 1, 0);
     // jump entry with U-Mode
+    const void* entry = load_elf((void*)&u_elf_start, 0x80100000);
     write_csr(mepc, entry);
     write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11) | MSTATUS_MPIE);
     asm volatile("fence.i");

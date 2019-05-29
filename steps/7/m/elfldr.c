@@ -69,7 +69,7 @@ static int check_ehdr(const Elf32_Ehdr* ehdr)
     return 0;
 }
 
-void* load_elf(const void *src)
+void* load_elf(const void *src, uintptr_t dst)
 {
     const Elf32_Ehdr* ehdr = src;
     const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
@@ -82,7 +82,7 @@ void* load_elf(const void *src)
     for (int i = 0; i < ehdr->e_phnum; i ++) {
         if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
             const void* from = src + phdr[i].p_offset;
-            void* to = (void*)phdr[i].p_vaddr;
+            void* to = (void*)(phdr[i].p_vaddr + dst); // FIXME: just adding dst is illegal
 #if defined(ENABLE_DUMP)
             printf("copying (%dth) %p --> %p (sz:%x)\n", i, from, to, phdr[i].p_filesz);
 #endif

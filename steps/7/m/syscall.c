@@ -11,7 +11,7 @@
 static void handle_write(uintptr_t* regs, uintptr_t mepc)
 {
     // FIXME: make sure, the buffer address is in the appropriate range.
-    char *c = (char*)regs[REG_CTX_A2];
+    char *c = (char*)(regs[REG_CTX_A2] + 0x80100000); // FIXME: va2pa should be used.
     putchar(*c);
 }
 
