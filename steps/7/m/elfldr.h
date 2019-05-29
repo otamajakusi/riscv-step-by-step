@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-void* load_elf(const void *src, uintptr_t dst);
+void* load_elf(const void *src, uintptr_t pa);
 
 #ifdef __cplusplus
 }

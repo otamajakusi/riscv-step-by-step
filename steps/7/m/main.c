@@ -7,6 +7,7 @@
 #include "elfldr.h"
 #include "syscall.h"
 #include "vm.h"
+#include "consts.h"
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_CLINT_TIMEBASE_FREQ  10000000
@@ -51,11 +52,11 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 }
 
 /*
- * Set RWX addr 0x80100000, length: 32KiB
+ * Set RWX addr USER_PA, length: 32KiB
  */
 static void setup_pmp()
 {
-    uint32_t addr = 0x80100000u;
+    uint32_t addr = USER_PA;
     uint32_t len = 0x8000u;
     uint32_t pmpaddr = (addr >> 2) | ((len >> 3) - 1);
     write_csr(pmpaddr0, pmpaddr);
@@ -70,10 +71,11 @@ int main()
     handle_timer_interrupt();
     setup_pmp();
     init_pte();
-    setup_pte(0x00000000, 0x80100000, 0x1000, 1, 0, 1);
-    setup_pte(0x00001000, 0x80101000, 0x1000, 1, 1, 0);
+    // FIXME: user va and size should be obtained from elf file.
+    setup_pte(0x0000, USER_PA,          0x1000, 1, 0, 1);
+    setup_pte(0x1000, USER_PA + 0x1000, 0x1000, 1, 1, 0);
     // jump entry with U-Mode
-    const void* entry = load_elf((void*)&u_elf_start, 0x80100000);
+    const void* entry = load_elf((void*)&u_elf_start, USER_PA);
     write_csr(mepc, entry);
     write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11) | MSTATUS_MPIE);
     asm volatile("fence.i");

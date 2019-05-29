@@ -7,11 +7,13 @@
 #include "arch/riscv/encoding.h"
 #include "arch/riscv/machine.h"
 #include "arch/riscv/csr.h"
+#include "consts.h"
 
 static void handle_write(uintptr_t* regs, uintptr_t mepc)
 {
     // FIXME: make sure, the buffer address is in the appropriate range.
-    char *c = (char*)(regs[REG_CTX_A2] + 0x80100000); // FIXME: va2pa should be used.
+    // FIXME: va to pa translator should be implemented and used.
+    char *c = (char*)(regs[REG_CTX_A2] + USER_PA);
     putchar(*c);
 }
 

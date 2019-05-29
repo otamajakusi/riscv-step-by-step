@@ -20,15 +20,6 @@
  *    else then pa.ppn[1:0] = pte.ppn[1:0]
  * 
  * superpage(1-level page) translation) supports 4MiB pages, since va.VPN[1] is va[31:22]
- *
- * ex1.
- * 0x00000000(VA) -> 0x80400000(PA)
- * 0x00000000 >> 22 == 0 (va.vpn[1])
- * satp.ppn * 4KiB + 0
- * ex2.
- * 0x00000000(VA) -> 0x80400000(PA)
- * 0x00400000 >> 22 == 1 (va.vpn[1])
- * satp.ppn * 4KiB + 1
  */
 
 #include <stdint.h>
@@ -48,7 +39,7 @@ static union sv32_pte ptes2nd[PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)))
 
 void init_pte()
 {
-     ptes1st[0].val = PTE_V | (PAGE_NUM(ptes2nd) << PTE_PPN_SHIFT);
+    ptes1st[0].val = PTE_V | (PAGE_NUM(ptes2nd) << PTE_PPN_SHIFT);
     for (size_t i = 1; i < PTE_ENTRY_NUM; i ++) {
         ptes1st[i].val = 0;
     }
@@ -68,23 +59,19 @@ int setup_pte(uintptr_t va, uint64_t pa, size_t size,
     uint32_t va_vpn0 = (va >> 12) & 0x3ff;
     uint32_t va_vpn1 = (va >> (12 + 10)) & 0x3ff;
     if (va_vpn1 != 0) {
-        printf("error: va.vpn[1] %p should be 0 for now", va_vpn0);
+        printf("error: va.vpn[1] %p should be 0 for now\n", va_vpn1);
         return -1;
     }
     const union sv32_pte* pte1st = &ptes1st[va_vpn1];
+    if (pte1st->pte.ppn != PAGE_NUM(ptes2nd)) {
+        printf("error: illegal 1st level pte.ppn %p\n", pte1st->pte.ppn);
+        return -1;
+    }
     union sv32_pte* pte2nd = &ptes2nd[va_vpn0];
+    if ((pte2nd->val & PTE_V) != 0) {
+        printf("error: pte for va.vpn[0] %p is in use\n", va_vpn0);
+        return -1;
+    }
     pte2nd->val = attr | (PAGE_NUM(pa) << PTE_PPN_SHIFT);
     asm volatile ("sfence.vma" : : : "memory");
-    printf("%p %p\n", pte1st, pte2nd);
 }
-
-/*
-va: 0x00000000, va.vpn[1] == 0, va.vpn[0] == 0
-a = satp.ppn * 4KiB
-1st:
-pte = a + va.vpn[1] * 4;
-a = pte.ppn * 4KiB
-2nd:
-pte = a + va.vpn[0] * 4;
-pa.ppn[1:0] = pte.ppn[1:0]
-*/
