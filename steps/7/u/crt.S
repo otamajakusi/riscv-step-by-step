@@ -14,7 +14,6 @@ _start:
     sw      zero, 0(a0)
     addi    a0, a0, 4
     j       1b
-
 1:
     jal     arch_setup
     jal     main
