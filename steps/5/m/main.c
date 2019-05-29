@@ -67,7 +67,6 @@ int main()
     set_trap_fn(handler);
     write_csr(mie, read_csr(mie) | MIP_MTIP);
     handle_timer_interrupt();
-    write_csr(mstatus, (read_csr(mstatus) | MSTATUS_MIE));
     const void* entry = load_elf((void*)&u_elf_start);
     setup_pmp();
     // jump entry with U-Mode

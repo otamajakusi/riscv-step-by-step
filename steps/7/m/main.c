@@ -69,13 +69,13 @@ int main()
     set_trap_fn(handler);
     write_csr(mie, read_csr(mie) | MIP_MTIP);
     handle_timer_interrupt();
+    const void* entry = load_elf((void*)&u_elf_start, USER_PA);
     setup_pmp();
     init_pte();
     // FIXME: user va and size should be obtained from elf file.
     setup_pte(0x0000, USER_PA,          0x1000, 1, 0, 1);
     setup_pte(0x1000, USER_PA + 0x1000, 0x1000, 1, 1, 0);
     // jump entry with U-Mode
-    const void* entry = load_elf((void*)&u_elf_start, USER_PA);
     write_csr(mepc, entry);
     write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11) | MSTATUS_MPIE);
     asm volatile("fence.i");
