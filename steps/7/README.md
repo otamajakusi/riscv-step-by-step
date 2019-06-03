@@ -1,5 +1,6 @@
 # Step 7
 
+## virtual address / page protection.
 このstepでは仮想アドレス(=virtual address)上でuser modeプログラムを実行する方法を説明します. RISC-Vでは supervisor mode と user mode が virtual address で動作することができます. 一方 machine mode は常に物理アドレスでのアクセスとなります. virtual addressはアドレス変換機構によりアクセス権が確認されたのち物理アドレス(=physical address)に変換されアクセスされます.
 
 ### Address Translation and Protection
@@ -48,11 +49,11 @@ pte: page table entry
 vpn: virtual page number
 ppn: physical page number
 ```
-(1) satp registerのppnから1st level page table entryの先頭を得る
-(2) va.ppn[1]で1st level page table entryのindexを得る
-(3) (2)で得られたpte.ppnから2nd level page table entryの先頭を得る
-(4) va.ppn[0]で2nd level page table entryのindexを得る
-(5) (4)で得られたpte.ppnとva.offsetからpaを得る
+1. satp registerのppnから1st level page table entryの先頭を得る
+2. va.ppn[1]で1st level page table entryのindexを得る
+3. 2で得られたpte.ppnから2nd level page table entryの先頭を得る
+4. va.ppn[0]で2nd level page table entryのindexを得る
+5. 4で得られたpte.ppnとva.offsetからpaを得る
 
 #### Protection
 上のアドレス変換の図中の flags に設定する値により, user modeでのページアクセス, read, write, executeでのページアクセスなどの制御が可能です[^4](4). 詳細は [Privileged Architecture Version 1.10](https://github.com/riscv/riscv-isa-manual/blob/master/release/riscv-privileged-v1.10.pdf) `4.3.1 Addressing and Memory Protection` を参照してください.
