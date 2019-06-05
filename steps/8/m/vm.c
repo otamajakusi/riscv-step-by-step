@@ -27,6 +27,11 @@
 #include <string.h>
 #include "vm.h"
 
+void set_satp(const union sv32_pte* ptes1st)
+{
+    write_csr(satp, (SPTBR_MODE_SV32 << 31u) | PAGE_NUM(ptes1st));
+}
+
 void init_pte(union sv32_pte* ptes1st, union sv32_pte* ptes2nd)
 {
     ptes1st[0].val = PTE_V | (PAGE_NUM(ptes2nd) << PTE_PPN_SHIFT);
@@ -37,7 +42,6 @@ void init_pte(union sv32_pte* ptes1st, union sv32_pte* ptes2nd)
         ptes2nd[i].val = 0;
     }
     asm volatile ("sfence.vma" : : : "memory");
-    write_csr(satp, (SPTBR_MODE_SV32 << 31u) | PAGE_NUM(ptes1st));
 }
 
 int setup_pte(union sv32_pte* ptes1st,
@@ -63,4 +67,13 @@ int setup_pte(union sv32_pte* ptes1st,
     }
     pte2nd->val = attr | (PAGE_NUM(pa) << PTE_PPN_SHIFT);
     asm volatile ("sfence.vma" : : : "memory");
+}
+
+void dump_pte(const union sv32_pte* ptes)
+{
+    for (size_t i = 0; i < PTE_ENTRY_NUM; i ++) {
+        if (ptes[i].val != 0) {
+            printf("0x%x: %x:%x\n", i, ptes[i].pte.ppn, ptes[i].pte.flags);
+        }
+    }
 }

@@ -21,8 +21,16 @@
 
 extern uintptr_t u_elf_start;
 
-static union sv32_pte ptes1st[PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
-static union sv32_pte ptes2nd[PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
+static union sv32_pte ptes1st[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
+static union sv32_pte ptes2nd[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
+
+typedef struct {
+    uintptr_t       entry;
+    uintptr_t       pa[1]; // only 1 continuous physical regions are supported
+    union sv32_pte* pte;
+} task_t;
+
+static task_t task[USER_NUM];
 
 static void handle_timer_interrupt()
 {
@@ -55,15 +63,27 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 }
 
 /*
- * Set RWX addr USER_PA, length: 32KiB
+ * Set RWX addr pa
  */
-static void setup_pmp()
+static void setup_pmp(uint32_t addr, uint32_t len)
 {
-    uint32_t addr = USER_PA;
-    uint32_t len = 0x8000u;
     uint32_t pmpaddr = (addr >> 2) | ((len >> 3) - 1);
-    write_csr(pmpaddr0, pmpaddr);
-    write_csr(pmpcfg0, PMP_NAPOT | PMP_X | PMP_W | PMP_R);
+    // find pmp_off
+    int csr_pmpcfg = -1;
+    int csr_pmpaddr = -1;
+    for (size_t i = 0; i < PMPCFG_COUNT; i ++) {
+        uint32_t cfg = read_csr_enum(csr_pmpcfg0 + i);
+        for (size_t j = 0; j < 4; j ++) {
+            if (((cfg >> (j * 8)) & PMP_NAPOT) == PMP_OFF) {
+                write_csr_enum(csr_pmpaddr0 + i * PMPCFG_COUNT + j, pmpaddr);
+                write_csr_enum(
+                        csr_pmpcfg0 + i,
+                        cfg | (PMP_NAPOT | PMP_X | PMP_W | PMP_R) << (j * 8));
+                return;
+            }
+        }
+    }
+    printf("error: pmp entry off not found\n");
 }
 
 int main()
@@ -72,14 +92,21 @@ int main()
     set_trap_fn(handler);
     write_csr(mie, read_csr(mie) | MIP_MTIP);
     handle_timer_interrupt();
-    const void* entry = load_elf((void*)&u_elf_start, USER_PA);
-    setup_pmp();
-    init_pte(ptes1st, ptes2nd);
-    // FIXME: user va and size should be obtained from elf file.
-    setup_pte(ptes1st, 0x0000, USER_PA,          0x1000, 1, 0, 1);
-    setup_pte(ptes1st, 0x1000, USER_PA + 0x1000, 0x1000, 1, 1, 0);
+    for (size_t i = 0; i < USER_NUM; i ++) {
+        uint32_t pa = USER_PA + USER_PA_OFFSET * i;
+        const void* entry = load_elf((void*)&u_elf_start, pa);
+        setup_pmp(pa, 0x2000);
+        init_pte(ptes1st[i], ptes2nd[i]);
+        // FIXME: user va and size should be obtained from elf file.
+        setup_pte(ptes1st[i], 0x0000, pa,          0x1000, 1, 0, 1);
+        setup_pte(ptes1st[i], 0x1000, pa + 0x1000, 0x1000, 1, 1, 0);
+        task[i].entry = (uintptr_t)entry;
+        task[i].pa[0] = pa;
+        task[i].pte = ptes1st[i];
+    }
     // jump entry with U-Mode
-    write_csr(mepc, entry);
+    set_satp(task[0].pte);
+    write_csr(mepc, task[0].entry);
     write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11) | MSTATUS_MPIE);
     asm volatile("fence.i");
     mret();
