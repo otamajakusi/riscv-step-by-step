@@ -8,6 +8,7 @@
 #include "elfldr.h"
 #include "syscall.h"
 #include "consts.h"
+#include "task.h"
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_CLINT_TIMEBASE_FREQ  10000000
@@ -24,19 +25,34 @@ extern uintptr_t u_elf_start;
 static union sv32_pte ptes1st[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
 static union sv32_pte ptes2nd[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
 
-typedef struct {
-    uintptr_t       entry;
-    uintptr_t       pa[1]; // only 1 continuous physical regions are supported
-    union sv32_pte* pte;
-} task_t;
-
 static task_t task[USER_NUM];
+static int curr_task_num;
+
+static void switch_task(uintptr_t* regs, uintptr_t mepc)
+{
+    task_t *curr;
+
+    curr = &task[curr_task_num];
+    // save context
+    memcpy(curr->regs, regs, sizeof(curr->regs));
+    curr->mepc = mepc;
+
+    // change curr
+    curr_task_num = (curr_task_num + 1) % USER_NUM;
+    curr = &task[curr_task_num];
+
+    // restore context
+    memcpy(regs, curr->regs, sizeof(curr->regs));
+    write_csr(mepc, curr->mepc);
+
+    set_satp(curr->pte);
+}
 
 static void handle_timer_interrupt()
 {
     volatile uintptr_t *mtimecmp = (uintptr_t*)(SIFIVE_TIMECMP_ADDR);
     volatile uintptr_t *mtime = (uintptr_t*)(SIFIVE_TIME_ADDR);
-    uint32_t tick = SIFIVE_CLINT_TIMEBASE_FREQ;
+    uint32_t tick = SIFIVE_CLINT_TIMEBASE_FREQ / 100;
     uint64_t next = (*(uint64_t*)mtimecmp) + tick;
     uint32_t mtimecmp_lo = next;
     uint32_t mtimecmp_hi = next >> 32;
@@ -50,10 +66,11 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     if (mcause == cause_machine_ecall) {
         printf("ecall by machine mode at: %p\n", mepc);
     } else if (mcause == cause_user_ecall) {
-        handle_syscall(regs, mepc);
+        handle_syscall(regs, mepc, &task[curr_task_num]);
         return;
     } else if ((mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_interrupt();
+        switch_task(regs, mepc);
         return;
     } else {
         printf("unknown exception or interrupt: %x, %p, %x\n",
@@ -105,8 +122,9 @@ int main()
         task[i].pte = ptes1st[i];
     }
     // jump entry with U-Mode
-    set_satp(task[0].pte);
-    write_csr(mepc, task[0].entry);
+    curr_task_num = 0;
+    set_satp(task[curr_task_num].pte);
+    write_csr(mepc, task[curr_task_num].entry);
     write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11) | MSTATUS_MPIE);
     asm volatile("fence.i");
     mret();

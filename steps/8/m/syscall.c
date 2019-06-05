@@ -9,19 +9,18 @@
 #include "arch/riscv/csr.h"
 #include "consts.h"
 
-static void handle_write(uintptr_t* regs, uintptr_t mepc)
+static void handle_write(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
 {
     // FIXME: make sure, the buffer address is in the appropriate range.
-    // FIXME: va to pa translator should be implemented and used.
-    char *c = (char*)(regs[REG_CTX_A2] + USER_PA);
+    char *c = (char*)(regs[REG_CTX_A2] + curr->pa[0]);
     putchar(*c);
 }
 
-void handle_syscall(uintptr_t* regs, uintptr_t mepc)
+void handle_syscall(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
 {
    switch (regs[REG_CTX_A0]) {
    case SYSCALL_WRITE:
-       handle_write(regs, mepc);
+       handle_write(regs, mepc, curr);
        break;
    case SYSCALL_EXIT:
        // FIXME: tentative implementation
