@@ -1,23 +1,23 @@
 # RISC-V kernel sample
 
-このレポジトリではRISC-Vの上で動作する簡単なkernelを実装します。このkernelの実装を通じて
+このレポジトリではRISC-Vの上で動作する簡単なkernelを実装します. このkernelの実装を通じて
 
 - RISC-Vアーキテクチャ
 - kernelの基本的動作
 - gnu binary utilities (=binutils) の簡単な使い方
 - セキュリティ
 
-についての理解が深まると考えます。実装は理解をしやすいように小さなステップに分けて段階的に進めていきます。
+についての理解が深まると考えます. 実装は理解をしやすいように小さなステップに分けて段階的に進めていきます.
 
-開発環境のセットアップから初めて、例外処理、割り込み処理、ユーザーモード、システムコール、アドレス変換、などを実装し、最後にセキュリティについて実装をします。
+開発環境のセットアップから初めて, 例外処理, 割り込み処理, ユーザーモード, システムコール, アドレス変換, などを実装し, 最後にセキュリティについて実装をします.
 
-なおコンパイラはgcc, 実行環境はqemu, ライブラリとしてriscv-probeを使用します。
+なおコンパイラはgcc, 実行環境はqemu, ライブラリとしてriscv-probeを使用します.
 
 ### [Step 1](steps/1/README.md)
 machine mode hello world.
 
 ### [Step 2](steps/2/README.md)
-machine mode with `ecall` exception.
+machine mode with ecall exception.
 
 ### [Step 3](steps/3/README.md)
 machine mode with timer interrupt.
@@ -38,7 +38,7 @@ virtual address / page protection.
 multiple user mode.
 
 ### [Step 9](steps/9/README.md)
-lazy loading.
+demand paging.
 
 ### [Step 10](steps/10/README.md)
 task state: ready, running and blocked.

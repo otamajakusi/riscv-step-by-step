@@ -34,3 +34,6 @@ virtual addressのphysical address変換を現在実行している `task` に�
 #### m/main.c
 2つのtaskをtimer割り込みごとに入れ替える処理(switch_task)を加えました. また2つのtaskが並列に動作しているのを分かりやすくするためにtimer割り込みの割り込み間隔を10msecに変更しました.
 PMP(Physical Memory Protection)の設定を複数設定可能にしました.
+
+#### u/main.c
+並列に動作しているのを分かりやすくするため, `Hello...` の表示を100回繰り返して終了するするようにしました.

@@ -1,6 +1,6 @@
 # Step 2
 
-## machine mode with `ecall` exception.
+## machine mode with ecall exception.
 step2では RISC-V の CPU 例外を発行する命令である`ecall` の処理を実装しますが, プログラムカウンタ(=PC)がどのように遷移するのかを説明するために,  step1 の `make run` から振り返ります.
 `make run` は `steps/1/Makefile` から includeされる `../../mk/m.mk`に書かれていて
 
