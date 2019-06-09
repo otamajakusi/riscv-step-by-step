@@ -21,6 +21,7 @@
 #define SIFIVE_TIME_ADDR    (CLINT_BASE + SIFIVE_TIME_BASE)
 
 extern uintptr_t u_elf_start;
+extern uintptr_t u_elf_size;
 
 static union sv32_pte ptes1st[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
 static union sv32_pte ptes2nd[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
@@ -61,6 +62,39 @@ static void handle_timer_interrupt()
     *(mtimecmp + 0) = mtimecmp_lo;
 }
 
+static int handle_page_fault(uintptr_t mcause, uintptr_t mepc)
+{
+    uint32_t mpp = (read_csr(mstatus) & MSTATUS_MPP) >> 11;
+    if (mpp != PRV_U) {
+        printf("page fault at MPP != U\n");
+        return -1;
+    }
+    int read = 0;
+    int write = 0;
+    int exec = 0;
+
+    task_t *curr = &task[curr_task_num];
+    uintptr_t err_addr = mepc;
+
+    if (mcause == cause_exec_page_fault) {
+        exec = 1;
+    } else if (mcause == cause_load_page_fault) {
+        read = 1;
+        err_addr = read_csr(mtval);
+    } else if (mcause == cause_store_page_fault) {
+        write = 1;
+        err_addr = read_csr(mtval);
+    }
+
+    const Elf32_Phdr* phdr = get_phdr_from_va(curr->ehdr, err_addr, read, write, exec);
+    if (phdr == NULL) {
+        printf("error: illegal page fault %d. pc %p, va %p\n", mcause, mepc, err_addr);
+        return -1;
+    }
+    load_program_segment(curr->ehdr, phdr, err_addr, curr->pte, 1);
+    return 0;
+}
+
 static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
     if (mcause == cause_machine_ecall) {
@@ -72,6 +106,15 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         handle_timer_interrupt();
         switch_task(regs, mepc);
         return;
+    } else if (mcause == cause_exec_page_fault ||
+               mcause == cause_load_page_fault ||
+               mcause == cause_store_page_fault) {
+        if (handle_page_fault(mcause, mepc) == 0) {
+            return;
+        } else {
+            printf("unintended page fault: %x, %p, %x\n",
+                    mcause, mepc, read_csr(mstatus) & MSTATUS_MPP);
+        }
     } else {
         printf("unknown exception or interrupt: %x, %p, %x\n",
                 mcause, mepc, read_csr(mstatus) & MSTATUS_MPP);
@@ -111,13 +154,18 @@ int main()
     handle_timer_interrupt();
     for (size_t i = 0; i < USER_NUM; i ++) {
         uint32_t pa = USER_PA + USER_PA_OFFSET * i;
-        const void* entry = load_elf((void*)&u_elf_start, pa);
+        const Elf32_Ehdr* ehdr = check_elf((void*)&u_elf_start, (uintptr_t)&u_elf_size);
+        if (ehdr == NULL) {
+            printf("error: illegal elf\n");
+            return 1;
+        }
         setup_pmp(pa, 0x2000);
         init_pte(ptes1st[i], ptes2nd[i]);
         // FIXME: user va and size should be obtained from elf file.
-        setup_pte(ptes1st[i], 0x0000, pa,          0x1000, 1, 0, 1);
-        setup_pte(ptes1st[i], 0x1000, pa + 0x1000, 0x1000, 1, 1, 0);
-        task[i].entry = (uintptr_t)entry;
+        setup_pte(ptes1st[i], 0x0000, pa,          0x1000, 1, 0, 1, 0);
+        setup_pte(ptes1st[i], 0x1000, pa + 0x1000, 0x1000, 1, 1, 0, 0);
+        task[i].ehdr = ehdr;
+        task[i].entry = ehdr->e_entry;
         task[i].pa[0] = pa;
         task[i].pte = ptes1st[i];
     }

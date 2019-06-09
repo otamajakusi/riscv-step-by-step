@@ -1,14 +1,10 @@
 #include <stdio.h>
 #include <string.h>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wignored-qualifiers"
-#include "elf.h"
-#pragma GCC diagnostic pop
+#include "elfldr.h"
+#include "vm.h"
 
 //#define ENABLE_DUMP
 
-#if defined(ENABLE_DUMP)
 static void dump_phdr(const Elf32_Phdr* phdr)
 {
 	printf("%08x(p_type)\n",    phdr->p_type);
@@ -50,9 +46,27 @@ static void dump_elf(const Elf32_Ehdr* ehdr, const Elf32_Phdr* phdr)
         dump_phdr(phdr + i);
     }
 }
-#endif
 
-static int check_ehdr(const Elf32_Ehdr* ehdr)
+static int check_phdr(const Elf32_Phdr* phdr, size_t size)
+{
+    if (phdr->p_type != PT_LOAD) {
+        return 0; // do nothing
+    }
+    if (phdr->p_filesz > size ||
+        phdr->p_offset >= size) {
+        return -1; // illegal p_filesz or p_offset
+    }
+    if (phdr->p_vaddr + phdr->p_filesz < phdr->p_vaddr) {
+        return -1; // wrapped around
+    }
+    if (phdr->p_offset + phdr->p_filesz < phdr->p_offset) {
+        return -1; // wrapped around
+    }
+    // TODO: p_memsz should be checked.
+    return 0;
+}
+
+static int check_ehdr(const Elf32_Ehdr* ehdr, size_t size)
 {
     if (ehdr->e_ident[EI_CLASS] != ELFCLASS32) {
         printf("error: e_ident[EI_CLASS] %x\n", ehdr->e_ident[EI_CLASS]);
@@ -66,22 +80,25 @@ static int check_ehdr(const Elf32_Ehdr* ehdr)
         printf("error: e_machine %x\n", ehdr->e_machine);
         return -1;
     }
+    const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
+    for (int i = 0; i < ehdr->e_phnum; i ++) {
+        if (check_phdr(&phdr[i], size) < 0) {
+            return -1;
+        }
+    }
     return 0;
 }
 
-void* load_elf(const void *src, uintptr_t pa)
+void* load_elf(const void *elf, size_t size, uintptr_t pa)
 {
-    const Elf32_Ehdr* ehdr = src;
+    const Elf32_Ehdr* ehdr = check_elf(elf, size);
     const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
-#if defined(ENABLE_DUMP)
-    dump_elf(ehdr, phdr);
-#endif
-    if (check_ehdr(ehdr) < 0) {
+    if (ehdr == NULL) {
         return NULL;
     }
     for (int i = 0; i < ehdr->e_phnum; i ++) {
         if (phdr[i].p_type == PT_LOAD && phdr[i].p_filesz) {
-            const void* from = src + phdr[i].p_offset;
+            const void* from = elf + phdr[i].p_offset;
             // FIXME: pa should have space of p_filesz.
             void* to = (void*)(phdr[i].p_vaddr + pa);
 #if defined(ENABLE_DUMP)
@@ -96,4 +113,53 @@ void* load_elf(const void *src, uintptr_t pa)
     // FIXME:
     // make sure e_entry is not illegal.
     return (void*)ehdr->e_entry;
+}
+
+const Elf32_Ehdr* check_elf(const void *elf, size_t size)
+{
+    const Elf32_Ehdr* ehdr = elf;
+    const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
+#if defined(ENABLE_DUMP)
+    dump_elf(ehdr, phdr);
+#endif
+    if (check_ehdr(ehdr, size) < 0) {
+        return NULL;
+    }
+    return ehdr;
+}
+
+const Elf32_Phdr* get_phdr_from_va(
+        const Elf32_Ehdr* ehdr, uint32_t va, int read, int write, int exec)
+{
+    const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
+    uint32_t flags = (read ? PF_R : 0) |
+                     (write ? PF_W : 0) |
+                     (exec ? PF_X : 0);
+    for (int i = 0; i < ehdr->e_phnum; i ++) {
+        if (phdr[i].p_type == PT_LOAD &&
+            (phdr[i].p_flags & flags) == flags &&
+            va >= phdr[i].p_vaddr &&
+            va < phdr[i].p_vaddr + phdr[i].p_memsz) {
+            return &phdr[i];
+        }
+    }
+    return NULL;
+}
+
+// load page data from program segment located at va.
+int load_program_segment(
+        const Elf32_Ehdr* ehdr, const Elf32_Phdr* phdr,
+        uint32_t va, const union sv32_pte* ptes1st,
+        int validate_page)
+{
+    uint32_t va_page_aligned = va & ~(PAGE_SIZE - 1);
+    uint32_t va_page_offset = (va - va_page_aligned) & ~(PAGE_SIZE - 1);
+    uint32_t size = phdr->p_filesz - va_page_offset;
+    size = size > PAGE_SIZE ? PAGE_SIZE : size;
+    const void* from = (const char*)ehdr + phdr->p_offset + va_page_offset;
+    uint64_t pa = va_to_pa(ptes1st, va, validate_page);
+    void* to = (void*)(uintptr_t)(pa);
+    printf("copying %p --> %p (sz:%x)\n", from, to, size);
+    memcpy(to, from, size);
+    return 0;
 }

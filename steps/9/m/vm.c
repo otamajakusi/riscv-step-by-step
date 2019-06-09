@@ -71,14 +71,18 @@ int setup_pte(union sv32_pte* ptes1st,
     asm volatile ("sfence.vma" : : : "memory");
 }
 
-uint64_t va_to_pa(const union sv32_pte* ptes1st, uintptr_t va)
+uint64_t va_to_pa(const union sv32_pte* ptes1st, uintptr_t va, int validate)
 {
     uint32_t va_vpn0 = (va >> 12) & 0x3ff;
     uint32_t va_vpn1 = (va >> (12 + 10)) & 0x3ff;
     const union sv32_pte* pte1st = &ptes1st[va_vpn1];
-    const union sv32_pte* ptes2nd
+    union sv32_pte* ptes2nd
         = (union sv32_pte*)(pte1st->pte.ppn << RISCV_PGSHIFT);
-    const union sv32_pte* pte2nd = &ptes2nd[va_vpn0];
+    union sv32_pte* pte2nd = &ptes2nd[va_vpn0];
+    if (validate) {
+        pte2nd->val |= PTE_V;
+        asm volatile ("sfence.vma" : : : "memory");
+    }
     uintptr_t pa = (pte2nd->pte.ppn) << RISCV_PGSHIFT;
     return pa;
 }
