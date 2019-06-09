@@ -74,24 +74,23 @@ static int handle_page_fault(uintptr_t mcause, uintptr_t mepc)
     int exec = 0;
 
     task_t *curr = &task[curr_task_num];
-    uintptr_t err_addr = mepc;
+    uintptr_t addr = read_csr(mtval);
 
     if (mcause == cause_exec_page_fault) {
         exec = 1;
     } else if (mcause == cause_load_page_fault) {
         read = 1;
-        err_addr = read_csr(mtval);
     } else if (mcause == cause_store_page_fault) {
         write = 1;
-        err_addr = read_csr(mtval);
     }
+    // printf("cause %d, addr %p\n", mcause, addr);
 
-    const Elf32_Phdr* phdr = get_phdr_from_va(curr->ehdr, err_addr, read, write, exec);
+    const Elf32_Phdr* phdr = get_phdr_from_va(curr->ehdr, addr, read, write, exec);
     if (phdr == NULL) {
-        printf("error: illegal page fault %d. pc %p, va %p\n", mcause, mepc, err_addr);
+        printf("error: illegal page fault %d. pc %p, va %p\n", mcause, mepc, addr);
         return -1;
     }
-    load_program_segment(curr->ehdr, phdr, err_addr, curr->pte, 1);
+    load_program_segment(curr->ehdr, phdr, addr, curr->pte, 1);
     return 0;
 }
 

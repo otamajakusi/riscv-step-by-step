@@ -74,6 +74,10 @@ userから渡されるアドレスはvirtual addressなのでそれをphysical a
 #### u
 linker scriptとしてu-va.ldを指定しています. プログラムセグメントの数を2つにして, 常に4KiBでアラインされるようにしています. crt.S も riscv-probe libfemto_start_main の呼び出しをやめて, crt.S で bss をクリアするように変更しました.
 
+TODO:
+
+sfence.vma, A-bit, D-bitの説明.
+
 ###### 1
 Page Table EntryのAccessed, Dirty bitについては以降のstepで説明する予定です.
 

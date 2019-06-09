@@ -38,7 +38,7 @@ virtual address / page protection.
 multiple user mode.
 
 ### [Step 9](steps/9/README.md)
-demand paging.
+lazy loading.
 
 ### [Step 10](steps/10/README.md)
 task state: ready, running and blocked.
