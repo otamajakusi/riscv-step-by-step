@@ -53,8 +53,7 @@ void init_pte()
 int setup_pte(uintptr_t va, uint64_t pa, size_t size,
         int read, int write, int exec)
 {
-    /* PTE_A is set in this implementation */
-    uint32_t attr = PTE_V | PTE_U | PTE_A;
+    uint32_t attr = PTE_V | PTE_U;
     attr |= (read ? PTE_R : 0) | (write ? PTE_W : 0) | (exec ? PTE_X : 0);
     uint32_t va_vpn0 = (va >> 12) & 0x3ff;
     uint32_t va_vpn1 = (va >> (12 + 10)) & 0x3ff;

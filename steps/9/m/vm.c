@@ -46,11 +46,13 @@ void init_pte(union sv32_pte* ptes1st, union sv32_pte* ptes2nd)
 
 int setup_pte(union sv32_pte* ptes1st,
         uintptr_t va, uint64_t pa, size_t size,
-        int read, int write, int exec)
+        int read, int write, int exec, int valid)
 {
-    /* PTE_A is set in this implementation */
-    uint32_t attr = PTE_V | PTE_U | PTE_A;
-    attr |= (read ? PTE_R : 0) | (write ? PTE_W : 0) | (exec ? PTE_X : 0);
+    uint32_t attr = PTE_U;
+    attr |= (read ? PTE_R : 0) |
+            (write ? PTE_W : 0) |
+            (exec ? PTE_X : 0) |
+            (valid ? PTE_V : 0);
     uint32_t va_vpn0 = (va >> 12) & 0x3ff;
     uint32_t va_vpn1 = (va >> (12 + 10)) & 0x3ff;
     if (va_vpn1 != 0) {
@@ -67,6 +69,18 @@ int setup_pte(union sv32_pte* ptes1st,
     }
     pte2nd->val = attr | (PAGE_NUM(pa) << PTE_PPN_SHIFT);
     asm volatile ("sfence.vma" : : : "memory");
+}
+
+uint64_t va_to_pa(const union sv32_pte* ptes1st, uintptr_t va)
+{
+    uint32_t va_vpn0 = (va >> 12) & 0x3ff;
+    uint32_t va_vpn1 = (va >> (12 + 10)) & 0x3ff;
+    const union sv32_pte* pte1st = &ptes1st[va_vpn1];
+    const union sv32_pte* ptes2nd
+        = (union sv32_pte*)(pte1st->pte.ppn << RISCV_PGSHIFT);
+    const union sv32_pte* pte2nd = &ptes2nd[va_vpn0];
+    uintptr_t pa = (pte2nd->pte.ppn) << RISCV_PGSHIFT;
+    return pa;
 }
 
 void dump_pte(const union sv32_pte* ptes)

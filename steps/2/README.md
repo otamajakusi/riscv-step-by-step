@@ -5,7 +5,7 @@ step2では RISC-V の CPU 例外を発行する命令である`ecall` の処理
 `make run` は `steps/1/Makefile` から includeされる `../../mk/m.mk`に書かれていて
 
 ```Makefile
-test:
+run:
 	qemu-system-riscv32 -nographic -machine sifive_u -kernel $(target)
 ```
 となっていています. `make run` の実体は qemu の実行で `machine` (=機種)は `sifive_u`, `kernel` (=実行バイナリ)は `$(target)` が指定されていることがわかります. `$(target)` は `make` 時に作成される `m.elf` のことです. 

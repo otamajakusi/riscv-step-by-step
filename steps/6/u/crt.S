@@ -1,4 +1,4 @@
-STACK_SIZE = 1024
+STACK_SIZE = 512
 
 .section .text.init,"ax",@progbits
 .global _start
