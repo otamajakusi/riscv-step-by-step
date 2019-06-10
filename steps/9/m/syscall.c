@@ -11,8 +11,8 @@
 
 static void handle_write(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
 {
-    // FIXME: make sure, the buffer address is in the appropriate range.
-    char *c = (char*)(regs[REG_CTX_A2] + curr->pa[0]);
+    uintptr_t pa = va_to_pa(curr->pte, mepc, 0);
+    char *c = (char*)(regs[REG_CTX_A2] + pa);
     putchar(*c);
 }
 

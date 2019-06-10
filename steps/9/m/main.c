@@ -20,6 +20,13 @@
 #define SIFIVE_TIMECMP_ADDR (CLINT_BASE + SIFIVE_TIMECMP_BASE)
 #define SIFIVE_TIME_ADDR    (CLINT_BASE + SIFIVE_TIME_BASE)
 
+#define ASSERT(x) { \
+   if (!x) { \
+       printf("error: assert failure \""#x"\" \n"); \
+       exit(1); \
+   } \
+}
+
 extern uintptr_t u_elf_start;
 extern uintptr_t u_elf_size;
 
@@ -145,6 +152,33 @@ static void setup_pmp(uint32_t addr, uint32_t len)
     printf("error: pmp entry off not found\n");
 }
 
+static uintptr_t allocate_pa(int num_page)
+{
+    static uint32_t start = 0;
+    uintptr_t pa = USER_PA + start * PAGE_SIZE;
+    start += num_page;
+    return pa;
+}
+
+static int setup_va(const Elf32_Ehdr* ehdr, union sv32_pte *ptes1st)
+{
+    const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
+    for (int i = 0; i < ehdr->e_phnum; i ++) {
+        uint32_t va = PAGE_ALIGN(phdr[i].p_vaddr);
+        uint32_t size = PAGE_ALIGN_UP(phdr[i].p_memsz);
+        uint32_t num_page = PAGE_NUM(size);
+        ASSERT(num_page == 1);
+        uint32_t flags = phdr[i].p_flags;
+        uintptr_t pa = allocate_pa(PAGE_NUM(size));
+        setup_pmp(pa, size);
+        setup_pte(ptes1st, va, pa, size,
+                flags & PF_R,
+                flags & PF_W,
+                flags & PF_X, 0);
+    }
+
+}
+
 int main()
 {
     printf("Hello RISC-V M-Mode.\n");
@@ -158,14 +192,10 @@ int main()
             printf("error: illegal elf\n");
             return 1;
         }
-        setup_pmp(pa, 0x2000);
         init_pte(ptes1st[i], ptes2nd[i]);
-        // FIXME: user va and size should be obtained from elf file.
-        setup_pte(ptes1st[i], 0x0000, pa,          0x1000, 1, 0, 1, 0);
-        setup_pte(ptes1st[i], 0x1000, pa + 0x1000, 0x1000, 1, 1, 0, 0);
+        setup_va(ehdr, ptes1st[i]);
         task[i].ehdr = ehdr;
         task[i].entry = ehdr->e_entry;
-        task[i].pa[0] = pa;
         task[i].pte = ptes1st[i];
     }
     // jump entry with U-Mode
