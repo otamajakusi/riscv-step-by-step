@@ -167,6 +167,7 @@ static int setup_va(const Elf32_Ehdr* ehdr, union sv32_pte *ptes1st)
         uint32_t va = PAGE_ALIGN(phdr[i].p_vaddr);
         uint32_t size = PAGE_ALIGN_UP(phdr[i].p_memsz);
         uint32_t num_page = PAGE_NUM(size);
+        // currently, num_page == 1 is supported.
         ASSERT(num_page == 1);
         uint32_t flags = phdr[i].p_flags;
         uintptr_t pa = allocate_pa(PAGE_NUM(size));
@@ -176,6 +177,7 @@ static int setup_va(const Elf32_Ehdr* ehdr, union sv32_pte *ptes1st)
                 flags & PF_W,
                 flags & PF_X, 0);
     }
+    return 0;
 
 }
 

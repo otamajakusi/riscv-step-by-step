@@ -11,7 +11,7 @@
 4. page faultはuser modeプログラムによるものか確認する.
 5. page faultの要因とpage faultが発生したエラーアドレスが適切であることを確認する. page faultが発生したエラーアドレスはmtvalで示される.
 	a. page faultの要因が `Instruction page fault` の場合, エラーアドレスがexecute flagを持つプログラムセグメントであることを確認する.
-	b. page faultの要因が `Load page fault` の場合e, エラーアドレスがread flagを持つプログラムセグメントであることを確認する.
+	b. page faultの要因が `Load page fault` の場合, エラーアドレスがread flagを持つプログラムセグメントであることを確認する.
 	c. page faultの要因が `Store/AMO page fault` の場合, エラーアドレスがwrite flagを持つプログラムセグメントであることを確認する.
 6. 5で得られたプログラムセグメントからpage faultが発生したアドレスのpageをメモリにロードする.
 7. 6でロードしたページのページテーブルエントリのV-bitを設定しメモリ同期命令を発行する.
@@ -26,3 +26,16 @@
 - pageへの初回アクセス時間が長くなる
 
 ### 変更点(TODO)
+#### m/elfldr.{c,h}
+elf header, program headerをチェックするようにした. kernelを壊されないように. 以前のようにすべてmachine modeで動作させていたころはセキュリティに気を配る必要はなかったけれど, virtual addressで動作させる意味はuser/kernelの権限を明確にしたいから.
+
+get_phdr_from_va: vaとread, write, executeのアクセスから対応するprogram headerを取得し, そのprogram headerからvaが含まれるデータを取得する. lazy loading用.
+
+#### m/main.c
+handle_page_fault: mtvalからエラーアドレスを取得する
+制限を排除. program headerからvaの情報を取得.
+
+#### m/vm.c
+va_to_paを実装. これによりtask.hでpaを管理する必要がなくなった.
+
+#### 
