@@ -188,7 +188,6 @@ int main()
     write_csr(mie, read_csr(mie) | MIP_MTIP);
     handle_timer_interrupt();
     for (size_t i = 0; i < USER_NUM; i ++) {
-        uint32_t pa = USER_PA + USER_PA_OFFSET * i;
         const Elf32_Ehdr* ehdr = check_elf((void*)&u_elf_start, (uintptr_t)&u_elf_size);
         if (ehdr == NULL) {
             printf("error: illegal elf\n");

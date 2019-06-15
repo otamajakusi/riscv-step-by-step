@@ -1,4 +1,4 @@
-srcs  = crt.S main.c elfldr.c syscall.c vm.c
+srcs  = crt.S main.c elfldr.c syscall.c vm.c sched.c
 target = m.elf
 objs = u.elf.o
 include ../../../mk/common.mk

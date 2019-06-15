@@ -9,6 +9,7 @@
 #include "syscall.h"
 #include "consts.h"
 #include "task.h"
+#include "sched.h"
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_CLINT_TIMEBASE_FREQ  10000000
@@ -32,29 +33,6 @@ extern uintptr_t u_elf_size;
 
 static union sv32_pte ptes1st[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
 static union sv32_pte ptes2nd[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
-
-static task_t task[USER_NUM];
-static int curr_task_num;
-
-static void switch_task(uintptr_t* regs, uintptr_t mepc)
-{
-    task_t *curr;
-
-    curr = &task[curr_task_num];
-    // save context
-    memcpy(curr->regs, regs, sizeof(curr->regs));
-    curr->mepc = mepc;
-
-    // change curr
-    curr_task_num = (curr_task_num + 1) % USER_NUM;
-    curr = &task[curr_task_num];
-
-    // restore context
-    memcpy(regs, curr->regs, sizeof(curr->regs));
-    write_csr(mepc, curr->mepc);
-
-    set_satp(curr->pte);
-}
 
 static void handle_timer_interrupt()
 {
@@ -80,7 +58,7 @@ static int handle_page_fault(uintptr_t mcause, uintptr_t mepc)
     int write = 0;
     int exec = 0;
 
-    task_t *curr = &task[curr_task_num];
+    task_t *curr = get_current_task();
     uintptr_t addr = read_csr(mtval);
 
     if (mcause == cause_exec_page_fault) {
@@ -106,7 +84,7 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     if (mcause == cause_machine_ecall) {
         printf("ecall by machine mode at: %p\n", mepc);
     } else if (mcause == cause_user_ecall) {
-        handle_syscall(regs, mepc, &task[curr_task_num]);
+        handle_syscall(regs, mepc, get_current_task());
         return;
     } else if ((mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_interrupt();
@@ -188,7 +166,6 @@ int main()
     write_csr(mie, read_csr(mie) | MIP_MTIP);
     handle_timer_interrupt();
     for (size_t i = 0; i < USER_NUM; i ++) {
-        uint32_t pa = USER_PA + USER_PA_OFFSET * i;
         const Elf32_Ehdr* ehdr = check_elf((void*)&u_elf_start, (uintptr_t)&u_elf_size);
         if (ehdr == NULL) {
             printf("error: illegal elf\n");
@@ -196,16 +173,12 @@ int main()
         }
         init_pte(ptes1st[i], ptes2nd[i]);
         setup_va(ehdr, ptes1st[i]);
-        task[i].ehdr = ehdr;
-        task[i].entry = ehdr->e_entry;
-        task[i].pte = ptes1st[i];
+        if (create_task(ehdr, ptes1st[i]) < 0) {
+            printf("error: create_task\n");
+            return 1;
+        }
     }
-    // jump entry with U-Mode
-    curr_task_num = 0;
-    set_satp(task[curr_task_num].pte);
-    write_csr(mepc, task[curr_task_num].entry);
-    write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11) | MSTATUS_MPIE);
     asm volatile("fence.i");
-    mret();
+    schedule();
     return 0;
 }
