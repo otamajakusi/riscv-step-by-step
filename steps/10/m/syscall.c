@@ -8,6 +8,7 @@
 #include "arch/riscv/machine.h"
 #include "arch/riscv/csr.h"
 #include "consts.h"
+#include "sched.h"
 
 static void handle_write(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
 {
@@ -16,20 +17,22 @@ static void handle_write(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
     putchar(*c);
 }
 
+// TODO: read_bufからcopyする. exitでterminated状態にする(switch_taskする)
+
 void handle_syscall(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
 {
-   switch (regs[REG_CTX_A0]) {
-   case SYSCALL_WRITE:
-       handle_write(regs, mepc, curr);
-       break;
-   case SYSCALL_EXIT:
-       // FIXME: tentative implementation
-       exit(regs[REG_CTX_A1]);
-   default:
-       break;
-   }
-   write_csr(mepc, mepc + 4);
-   return;
+    switch (regs[REG_CTX_A0]) {
+    case SYSCALL_WRITE:
+        handle_write(regs, mepc, curr);
+        break;
+    case SYSCALL_EXIT:
+        terminate_current_task();
+        return switch_task(regs, mepc);
+    default:
+        break;
+    }
+    write_csr(mepc, mepc + 4);
+    return;
 }
 
 

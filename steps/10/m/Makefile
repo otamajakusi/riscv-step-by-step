@@ -1,9 +1,8 @@
-srcs  = crt.S main.c elfldr.c syscall.c vm.c sched.c
+srcs  = crt.S setup.c plic.c main.c elfldr.c syscall.c vm.c sched.c
 target = m.elf
 objs = u.elf.o
 include ../../../mk/common.mk
 include ../../../mk/m.mk
-LDFLAGS += $(MAKEFILE_DIR)../riscv-probe/build/obj/rv32imac/env/qemu-sifive_u/setup.o
 
 ../u/u.elf:
 	$(MAKE) -C ../u
