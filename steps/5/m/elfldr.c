@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "elfldr.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wignored-qualifiers"
@@ -11,14 +12,14 @@
 #if defined(ENABLE_DUMP)
 static void dump_phdr(const Elf32_Phdr* phdr)
 {
-	printf("%08x(p_type)\n",    phdr->p_type);
-	printf("%08x(p_offset)\n",  phdr->p_offset);
-	printf("%08x(p_vaddr)\n",   phdr->p_vaddr);
-	printf("%08x(p_paddr)\n",   phdr->p_paddr);
-	printf("%08x(p_filesz)\n",  phdr->p_filesz);
-	printf("%08x(p_memsz)\n",   phdr->p_memsz);
-	printf("%08x(p_flags)\n",   phdr->p_flags);
-	printf("%08x(p_align)\n",   phdr->p_align);
+	printf("%08lx(p_type)\n",    phdr->p_type);
+	printf("%08lx(p_offset)\n",  phdr->p_offset);
+	printf("%08lx(p_vaddr)\n",   phdr->p_vaddr);
+	printf("%08lx(p_paddr)\n",   phdr->p_paddr);
+	printf("%08lx(p_filesz)\n",  phdr->p_filesz);
+	printf("%08lx(p_memsz)\n",   phdr->p_memsz);
+	printf("%08lx(p_flags)\n",   phdr->p_flags);
+	printf("%08lx(p_align)\n",   phdr->p_align);
 }
 
 static void dump_ehdr(const Elf32_Ehdr* ehdr)
@@ -29,11 +30,11 @@ static void dump_ehdr(const Elf32_Ehdr* ehdr)
                                             ehdr->e_ident[3]);
 	printf("%04x(e_type)\n",                ehdr->e_type);
 	printf("%04x(e_machine)\n",             ehdr->e_machine);
-	printf("%08x(e_version)\n",             ehdr->e_version);
-	printf("%08x(e_entry)\n",               ehdr->e_entry);
-	printf("%08x(e_phoff)\n",               ehdr->e_phoff);
-	printf("%08x(e_shoff)\n",               ehdr->e_shoff);
-	printf("%08x(e_flags)\n",               ehdr->e_flags);
+	printf("%08lx(e_version)\n",            ehdr->e_version);
+	printf("%08lx(e_entry)\n",              ehdr->e_entry);
+	printf("%08lx(e_phoff)\n",              ehdr->e_phoff);
+	printf("%08lx(e_shoff)\n",              ehdr->e_shoff);
+	printf("%08lx(e_flags)\n",              ehdr->e_flags);
 	printf("%04x(e_ehsize)\n",              ehdr->e_ehsize);
 	printf("%04x(e_phentsize)\n",           ehdr->e_phentsize);
 	printf("%04x(e_phnum)\n",               ehdr->e_phnum);
@@ -84,7 +85,7 @@ void* load_elf(const void *src)
             const void* from = src + phdr[i].p_offset;
             void* to = (void*)phdr[i].p_vaddr;
 #if defined(ENABLE_DUMP)
-            printf("copying (%dth) %p --> %p (sz:%x)\n", i, from, to, phdr[i].p_filesz);
+            printf("copying (%dth) %p --> %p (sz:%lx)\n", i, from, to, phdr[i].p_filesz);
 #endif
             // FIXME:
             // make sure from and to addresses is not illegal.

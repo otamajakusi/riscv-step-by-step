@@ -51,7 +51,7 @@ static void switch_task(uintptr_t* regs, uintptr_t mepc)
 static void handle_timer_interrupt()
 {
     volatile uintptr_t *mtimecmp = (uintptr_t*)(SIFIVE_TIMECMP_ADDR);
-    volatile uintptr_t *mtime = (uintptr_t*)(SIFIVE_TIME_ADDR);
+    // volatile uintptr_t *mtime = (uintptr_t*)(SIFIVE_TIME_ADDR);
     uint32_t tick = SIFIVE_CLINT_TIMEBASE_FREQ / 100;
     uint64_t next = (*(uint64_t*)mtimecmp) + tick;
     uint32_t mtimecmp_lo = next;
@@ -64,7 +64,7 @@ static void handle_timer_interrupt()
 static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
     if (mcause == cause_machine_ecall) {
-        printf("ecall by machine mode at: %p\n", mepc);
+        printf("ecall by machine mode at: %x\n", mepc);
     } else if (mcause == cause_user_ecall) {
         handle_syscall(regs, mepc, &task[curr_task_num]);
         return;
@@ -73,7 +73,7 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         switch_task(regs, mepc);
         return;
     } else {
-        printf("unknown exception or interrupt: %x, %p, %x\n",
+        printf("unknown exception or interrupt: %x, %x, %lx\n",
                 mcause, mepc, read_csr(mstatus) & MSTATUS_MPP);
     }
     exit(0);
@@ -86,8 +86,6 @@ static void setup_pmp(uint32_t addr, uint32_t len)
 {
     uint32_t pmpaddr = (addr >> 2) | ((len >> 3) - 1);
     // find pmp_off
-    int csr_pmpcfg = -1;
-    int csr_pmpaddr = -1;
     for (size_t i = 0; i < PMPCFG_COUNT; i ++) {
         uint32_t cfg = read_csr_enum(csr_pmpcfg0 + i);
         for (size_t j = 0; j < 4; j ++) {

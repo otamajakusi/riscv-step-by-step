@@ -22,7 +22,7 @@
 #define SIFIVE_TIME_ADDR    (CLINT_BASE + SIFIVE_TIME_BASE)
 
 #define ASSERT(x) { \
-   if (!x) { \
+   if (!(x)) { \
        printf("error: assert failure \""#x"\" \n"); \
        exit(1); \
    } \
@@ -37,7 +37,7 @@ static union sv32_pte ptes2nd[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PA
 static void handle_timer_interrupt()
 {
     volatile uintptr_t *mtimecmp = (uintptr_t*)(SIFIVE_TIMECMP_ADDR);
-    volatile uintptr_t *mtime = (uintptr_t*)(SIFIVE_TIME_ADDR);
+    // volatile uintptr_t *mtime = (uintptr_t*)(SIFIVE_TIME_ADDR);
     uint32_t tick = SIFIVE_CLINT_TIMEBASE_FREQ / 100;
     uint64_t next = (*(uint64_t*)mtimecmp) + tick;
     uint32_t mtimecmp_lo = next;
@@ -72,7 +72,7 @@ static int handle_page_fault(uintptr_t mcause, uintptr_t mepc)
 
     const Elf32_Phdr* phdr = get_phdr_from_va(curr->ehdr, addr, read, write, exec);
     if (phdr == NULL) {
-        printf("error: illegal page fault %d. pc %p, va %p\n", mcause, mepc, addr);
+        printf("error: illegal page fault %d. pc %x, va %x\n", mcause, mepc, addr);
         return -1;
     }
     load_program_segment(curr->ehdr, phdr, addr, curr->pte, 1);
@@ -82,7 +82,7 @@ static int handle_page_fault(uintptr_t mcause, uintptr_t mepc)
 static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
     if (mcause == cause_machine_ecall) {
-        printf("ecall by machine mode at: %p\n", mepc);
+        printf("ecall by machine mode at: %x\n", mepc);
     } else if (mcause == cause_user_ecall) {
         handle_syscall(regs, mepc, get_current_task());
         return;
@@ -96,11 +96,11 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         if (handle_page_fault(mcause, mepc) == 0) {
             return;
         } else {
-            printf("unintended page fault: %x, %p, %x\n",
+            printf("unintended page fault: %x, %x, %lx\n",
                     mcause, mepc, read_csr(mstatus) & MSTATUS_MPP);
         }
     } else {
-        printf("unknown exception or interrupt: %x, %p, %x\n",
+        printf("unknown exception or interrupt: %x, %x, %lx\n",
                 mcause, mepc, read_csr(mstatus) & MSTATUS_MPP);
     }
     exit(0);
@@ -113,8 +113,6 @@ static void setup_pmp(uint32_t addr, uint32_t len)
 {
     uint32_t pmpaddr = (addr >> 2) | ((len >> 3) - 1);
     // find pmp_off
-    int csr_pmpcfg = -1;
-    int csr_pmpaddr = -1;
     for (size_t i = 0; i < PMPCFG_COUNT; i ++) {
         uint32_t cfg = read_csr_enum(csr_pmpcfg0 + i);
         for (size_t j = 0; j < 4; j ++) {
@@ -138,7 +136,7 @@ static uintptr_t allocate_pa(int num_page)
     return pa;
 }
 
-static int setup_va(const Elf32_Ehdr* ehdr, union sv32_pte *ptes1st)
+static int setup_va(const Elf32_Ehdr* ehdr, union sv32_pte *ptes)
 {
     const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
     for (int i = 0; i < ehdr->e_phnum; i ++) {
@@ -150,7 +148,7 @@ static int setup_va(const Elf32_Ehdr* ehdr, union sv32_pte *ptes1st)
         uint32_t flags = phdr[i].p_flags;
         uintptr_t pa = allocate_pa(PAGE_NUM(size));
         setup_pmp(pa, size);
-        setup_pte(ptes1st, va, pa, size,
+        setup_pte(ptes, va, pa, size,
                 flags & PF_R,
                 flags & PF_W,
                 flags & PF_X, 0);

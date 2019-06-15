@@ -53,24 +53,26 @@ void init_pte()
 int setup_pte(uintptr_t va, uint64_t pa, size_t size,
         int read, int write, int exec)
 {
+    (void)size;
     uint32_t attr = PTE_V | PTE_U;
     attr |= (read ? PTE_R : 0) | (write ? PTE_W : 0) | (exec ? PTE_X : 0);
     uint32_t va_vpn0 = (va >> 12) & 0x3ff;
     uint32_t va_vpn1 = (va >> (12 + 10)) & 0x3ff;
     if (va_vpn1 != 0) {
-        printf("error: va.vpn[1] %p should be 0 for now\n", va_vpn1);
+        printf("error: va.vpn[1] %lx should be 0 for now\n", va_vpn1);
         return -1;
     }
     const union sv32_pte* pte1st = &ptes1st[va_vpn1];
     if (pte1st->pte.ppn != PAGE_NUM(ptes2nd)) {
-        printf("error: illegal 1st level pte.ppn %p\n", pte1st->pte.ppn);
+        printf("error: illegal 1st level pte.ppn %x\n", pte1st->pte.ppn);
         return -1;
     }
     union sv32_pte* pte2nd = &ptes2nd[va_vpn0];
     if ((pte2nd->val & PTE_V) != 0) {
-        printf("error: pte for va.vpn[0] %p is in use\n", va_vpn0);
+        printf("error: pte for va.vpn[0] %lx is in use\n", va_vpn0);
         return -1;
     }
     pte2nd->val = attr | (PAGE_NUM(pa) << PTE_PPN_SHIFT);
     asm volatile ("sfence.vma" : : : "memory");
+    return 0;
 }

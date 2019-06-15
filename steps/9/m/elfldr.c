@@ -5,16 +5,17 @@
 
 //#define ENABLE_DUMP
 
+#if defined(ENABLE_DUMP)
 static void dump_phdr(const Elf32_Phdr* phdr)
 {
-	printf("%08x(p_type)\n",    phdr->p_type);
-	printf("%08x(p_offset)\n",  phdr->p_offset);
-	printf("%08x(p_vaddr)\n",   phdr->p_vaddr);
-	printf("%08x(p_paddr)\n",   phdr->p_paddr);
-	printf("%08x(p_filesz)\n",  phdr->p_filesz);
-	printf("%08x(p_memsz)\n",   phdr->p_memsz);
-	printf("%08x(p_flags)\n",   phdr->p_flags);
-	printf("%08x(p_align)\n",   phdr->p_align);
+	printf("%08lx(p_type)\n",    phdr->p_type);
+	printf("%08lx(p_offset)\n",  phdr->p_offset);
+	printf("%08lx(p_vaddr)\n",   phdr->p_vaddr);
+	printf("%08lx(p_paddr)\n",   phdr->p_paddr);
+	printf("%08lx(p_filesz)\n",  phdr->p_filesz);
+	printf("%08lx(p_memsz)\n",   phdr->p_memsz);
+	printf("%08lx(p_flags)\n",   phdr->p_flags);
+	printf("%08lx(p_align)\n",   phdr->p_align);
 }
 
 static void dump_ehdr(const Elf32_Ehdr* ehdr)
@@ -25,11 +26,11 @@ static void dump_ehdr(const Elf32_Ehdr* ehdr)
                                             ehdr->e_ident[3]);
 	printf("%04x(e_type)\n",                ehdr->e_type);
 	printf("%04x(e_machine)\n",             ehdr->e_machine);
-	printf("%08x(e_version)\n",             ehdr->e_version);
-	printf("%08x(e_entry)\n",               ehdr->e_entry);
-	printf("%08x(e_phoff)\n",               ehdr->e_phoff);
-	printf("%08x(e_shoff)\n",               ehdr->e_shoff);
-	printf("%08x(e_flags)\n",               ehdr->e_flags);
+	printf("%08lx(e_version)\n",            ehdr->e_version);
+	printf("%08lx(e_entry)\n",              ehdr->e_entry);
+	printf("%08lx(e_phoff)\n",              ehdr->e_phoff);
+	printf("%08lx(e_shoff)\n",              ehdr->e_shoff);
+	printf("%08lx(e_flags)\n",              ehdr->e_flags);
 	printf("%04x(e_ehsize)\n",              ehdr->e_ehsize);
 	printf("%04x(e_phentsize)\n",           ehdr->e_phentsize);
 	printf("%04x(e_phnum)\n",               ehdr->e_phnum);
@@ -46,6 +47,7 @@ static void dump_elf(const Elf32_Ehdr* ehdr, const Elf32_Phdr* phdr)
         dump_phdr(phdr + i);
     }
 }
+#endif
 
 static int check_phdr(const Elf32_Phdr* phdr, size_t size)
 {
@@ -118,8 +120,8 @@ void* load_elf(const void *elf, size_t size, uintptr_t pa)
 const Elf32_Ehdr* check_elf(const void *elf, size_t size)
 {
     const Elf32_Ehdr* ehdr = elf;
-    const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
 #if defined(ENABLE_DUMP)
+    const Elf32_Phdr* phdr = (const Elf32_Phdr*)(ehdr + 1);
     dump_elf(ehdr, phdr);
 #endif
     if (check_ehdr(ehdr, size) < 0) {
@@ -159,7 +161,7 @@ int load_program_segment(
     const void* from = (const char*)ehdr + phdr->p_offset + va_page_offset;
     uint64_t pa = va_to_pa(ptes1st, va, validate_page);
     void* to = (void*)(uintptr_t)(pa);
-    printf("copying %p --> %p (sz:%x)\n", from, to, size);
+    printf("copying %p --> %p (sz:%lx)\n", from, to, size);
     memcpy(to, from, size);
     return 0;
 }

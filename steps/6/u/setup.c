@@ -11,6 +11,7 @@ static int console_getchar()
 static int console_putchar(int ch)
 {
     __write(0, &ch, 1);
+    return ch;
 }
 
 console_device_t console_user = {

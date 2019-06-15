@@ -4,10 +4,11 @@
 
 static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
+    (void)regs;
     if (mcause == cause_machine_ecall) {
-        printf("ecall by machine mode at: %p\n", mepc);
+        printf("ecall by machine mode at: %x\n", mepc);
     } else {
-        printf("unknown exception or interrupt: %x, %p\n", mcause, mepc);
+        printf("unknown exception or interrupt: %x, %x\n", mcause, mepc);
     }
     exit(0);
 }

@@ -10,6 +10,7 @@
 
 static void handle_write(uintptr_t* regs, uintptr_t mepc)
 {
+    (void)mepc;
     // FIXME: make sure, the buffer address is in the appropriate range.
     char *c = (char*)regs[REG_CTX_A2];
     putchar(*c);

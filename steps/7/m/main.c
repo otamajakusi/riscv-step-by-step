@@ -24,7 +24,7 @@ extern uintptr_t u_elf_start;
 static void handle_timer_interrupt()
 {
     volatile uintptr_t *mtimecmp = (uintptr_t*)(SIFIVE_TIMECMP_ADDR);
-    volatile uintptr_t *mtime = (uintptr_t*)(SIFIVE_TIME_ADDR);
+    // volatile uintptr_t *mtime = (uintptr_t*)(SIFIVE_TIME_ADDR);
     uint32_t tick = SIFIVE_CLINT_TIMEBASE_FREQ;
     uint64_t next = (*(uint64_t*)mtimecmp) + tick;
     uint32_t mtimecmp_lo = next;
@@ -37,7 +37,7 @@ static void handle_timer_interrupt()
 static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
     if (mcause == cause_machine_ecall) {
-        printf("ecall by machine mode at: %p\n", mepc);
+        printf("ecall by machine mode at: %x\n", mepc);
     } else if (mcause == cause_user_ecall) {
         handle_syscall(regs, mepc);
         return;
@@ -45,7 +45,7 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         handle_timer_interrupt();
         return;
     } else {
-        printf("unknown exception or interrupt: %x, %p, %x\n",
+        printf("unknown exception or interrupt: %x, %x, %lx\n",
                 mcause, mepc, read_csr(mstatus) & MSTATUS_MPP);
     }
     exit(0);
