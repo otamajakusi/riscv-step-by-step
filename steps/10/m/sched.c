@@ -12,11 +12,11 @@ int create_task(const Elf32_Ehdr* ehdr, union sv32_pte* pte)
 {
     for (size_t i = 0; i < USER_NUM; i ++) {
         if (task[i].state == task_state_created) {
-            task_t* task = &task[i];
-            task->entry = ehdr->e_entry;
-            task->ehdr = ehdr;
-            task->pte = pte;
-            task->state = task_state_ready;
+            task_t* p = &task[i];
+            p->entry = ehdr->e_entry;
+            p->ehdr = ehdr;
+            p->pte = pte;
+            p->state = task_state_ready;
             return 0;
         }
     }
