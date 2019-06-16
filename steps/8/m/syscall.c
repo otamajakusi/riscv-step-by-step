@@ -9,9 +9,8 @@
 #include "arch/riscv/csr.h"
 #include "consts.h"
 
-static void handle_write(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
+static void handle_write(uintptr_t* regs, const task_t* curr)
 {
-    (void)mepc;
     // FIXME: make sure, the buffer address is in the appropriate range.
     char *c = (char*)(regs[REG_CTX_A2] + curr->pa[0]);
     putchar(*c);
@@ -19,18 +18,18 @@ static void handle_write(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
 
 void handle_syscall(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
 {
-   switch (regs[REG_CTX_A0]) {
-   case SYSCALL_WRITE:
-       handle_write(regs, mepc, curr);
-       break;
-   case SYSCALL_EXIT:
-       // FIXME: tentative implementation
-       exit(regs[REG_CTX_A1]);
-   default:
-       break;
-   }
-   write_csr(mepc, mepc + 4);
-   return;
+    switch (regs[REG_CTX_A0]) {
+    case SYSCALL_WRITE:
+        handle_write(regs, curr);
+        break;
+    case SYSCALL_EXIT:
+        // FIXME: tentative implementation
+        exit(regs[REG_CTX_A1]);
+    default:
+        break;
+    }
+    write_csr(mepc, mepc + 4);
+    return;
 }
 
 
