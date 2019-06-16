@@ -13,10 +13,7 @@ static void enter_idle() __attribute__((noreturn));
 
 static void idle()
 {
-    for (unsigned int i = 0;; i ++) {
-        if ((i & (0x100000 - 1)) == 0) {
-            putchar('.');
-        }
+    for (;;) {
     }
 }
 

@@ -1,6 +1,6 @@
 # Step 10
 
-## task state: ready, running and blocked.
+## task state: ready, running and terminated.
 このstepではuser modeプログラムのtaskの状態の管理をします. このstepまでのtaskはblockedという状態がありませんでした. 通常taskは何らかの待ち状態(e.g. keyboardからの入力待ち, ネットワークからのパケット待ち, 別taskからのレスポンス待ち)であることがほとんどで, この状態をblocked状態として管理します. blocked状態のtaskにはCPUを割り当てません. すべてのtaskがblocked状態となった場合はidle taskと呼ばれる特別なtaskを実行しtaskのblocked状態が解除されるのを待ちます.
 
 ### scheduler
@@ -12,4 +12,4 @@
 - exitを入力するとtaskをexitさせterminatd状態に遷移させます. terminated状態のtaskはschedulingの対象から外されます.
 - idle taskを導入します. ready状態のtaskが存在しないときidle taskがrunning状態になります.
 - uartの入力待ちのtaskがいない場合, uartの入力はkernelが取得します. ここでもexitを受け付けるようにして system(=qemu) を終了させます.
-- 
+- riscv-proveのsetup.o から卒業します. uart interruptを取得するためにカスタマイズする必要があるからです.

@@ -28,13 +28,6 @@ extern uintptr_t u_elf_size;
 static union sv32_pte ptes1st[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
 static union sv32_pte ptes2nd[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
 
-static char uart_read_buf[32];
-static int uart_read_pos = 0;
-#define UART_SET_BUF(c)    { \
-    uart_read_buf[uart_read_pos] = (c); \
-    uart_read_pos = (uart_read_pos + 1) % sizeof(uart_read_buf); \
-}
-
 static void handle_timer_interrupt()
 {
     volatile uintptr_t *mtimecmp = (uintptr_t*)(SIFIVE_TIMECMP_ADDR);
@@ -80,38 +73,16 @@ static int handle_page_fault(uintptr_t mcause, uintptr_t mepc)
     return 0;
 }
 
-static void handle_intr(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
-{
-    if (mcause == intr_m_timer) {
-        handle_timer_interrupt();
-        switch_task(regs, mepc);
-        return;
-    } else if (mcause == intr_m_external) {
-        /*
-         * external interrupt handling
-         * 1. read irq number from claim/complete register
-         * 2. handle interrupt
-         * 3. write irq number handled to claim/complete register
-         */
-         volatile uint32_t *plic_claim = (uint32_t*)0x0C200004; // PLIC Claim/Complete Register (claim)
-         uint32_t irq = *plic_claim;
-         int c;
-         while ((c = getchar()) != -1) {
-             UART_SET_BUF(c);
-         }
-         *plic_claim = irq;
-    }
-}
-
 static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
-    if (mcause & (1u << 31)) {
-        return handle_intr(regs, mcause & ~(1u << 31), mepc);
-    }
     if (mcause == cause_machine_ecall) {
         printf("ecall by machine mode at: %x\n", mepc);
     } else if (mcause == cause_user_ecall) {
         handle_syscall(regs, mepc, get_current_task_safe());
+        return;
+    } else if ((mcause & ~(1u << 31)) == intr_m_timer) {
+        handle_timer_interrupt();
+        switch_task(regs, mepc);
         return;
     } else if (mcause == cause_exec_page_fault ||
                mcause == cause_load_page_fault ||
