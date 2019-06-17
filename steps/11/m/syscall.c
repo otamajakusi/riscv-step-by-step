@@ -24,7 +24,7 @@ void handle_syscall(uintptr_t* regs, uintptr_t mepc, task_t* curr)
     switch (regs[REG_CTX_A0]) {
     case SYSCALL_READ:
         handle_read(regs, curr);
-        return switch_task(regs, mepc);
+        return switch_task(regs, mepc + 4);
     case SYSCALL_WRITE:
         handle_write(regs, curr);
         break;

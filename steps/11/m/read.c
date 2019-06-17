@@ -13,7 +13,6 @@ static struct task_t* queue = NULL;
 static int retrieve_read_data()
 {
     if (rp == wp) {
-        printf("warning: buf is empty\n");
         return -1;
     }
     int c = buf[rp];
@@ -35,7 +34,6 @@ static void enqueue(task_t *curr)
 static task_t* dequeue()
 {
     ASSERT(queue != NULL);
-    printf("queue %p, single? %d\n", queue, task_is_single(queue));
     task_t *p = queue;
     if (task_is_single(p)) {
         queue = NULL;
@@ -53,13 +51,11 @@ int is_read_queue_empty()
 
 void handle_read(uintptr_t* regs, task_t* curr)
 {
-    printf("read %p\n", curr);
     uintptr_t va = regs[REG_CTX_A2];
     uintptr_t pa = va_to_pa(curr->pte, va, 0);
     char *d = (char*)(PAGE_OFFSET(va) + pa);
     int c = retrieve_read_data();
     if (c == -1) {
-        printf("%p enqueuing\n", curr);
         enqueue(curr);
         return;
     }
@@ -79,7 +75,6 @@ int receive_read_data(char c)
         printf("warning: buf is full\n");
         return 0;
     }
-    printf("c %c, wp %d, next %d, rp %d\n", c, wp, wp_next, rp);
 
     buf[wp] = c;
     wp = wp_next;

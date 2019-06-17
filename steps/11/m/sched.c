@@ -13,10 +13,7 @@ static void enter_idle() __attribute__((noreturn));
 
 static void idle()
 {
-    for (unsigned int i = 0;; i ++) {
-        if ((i & (0x100000 - 1)) == 0) {
-            putchar('.');
-        }
+    for (;;) {
     }
 }
 
@@ -30,15 +27,15 @@ static void enter_idle()
 static task_t* pickup_next_task()
 {
     int next = (curr_task_num + 1) % USER_NUM;
+    task_t *curr = get_current_task();
     for (int i = 0; i < USER_NUM; i ++, next = (next + 1) % USER_NUM) {
         if (task[next].state == task_state_ready ||
             task[next].state == task_state_running) {
-            printf("curr_task_num %d, next %d\n", curr_task_num, next);
-            if (curr_task_num == next) {
+            if (curr == &task[next]) {
                 /* curr_task is selected again */
             } else {
-                if (task[curr_task_num].state == task_state_running) {
-                    task[curr_task_num].state = task_state_ready;
+                if (curr && curr->state == task_state_running) {
+                    curr->state = task_state_ready;
                 }
                 task[next].state = task_state_running;
                 curr_task_num = next;
@@ -99,7 +96,6 @@ void switch_task(uintptr_t* regs, uintptr_t mepc)
         memcpy(curr->regs, regs, sizeof(curr->regs));
         curr->mepc = mepc;
     }
-    printf("curr %p\n", curr);
 
     // change curr
     curr = pickup_next_task();
@@ -108,6 +104,8 @@ void switch_task(uintptr_t* regs, uintptr_t mepc)
         enter_idle();
     } else {
         // restore context
+        // FIXME: PRV_U should be set if `curr` is use mode.
+        write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11));
         memcpy(regs, curr->regs, sizeof(curr->regs));
         write_csr(mepc, curr->mepc);
         set_satp(curr->pte);

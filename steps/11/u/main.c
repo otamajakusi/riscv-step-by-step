@@ -2,8 +2,11 @@
 
 int main()
 {
-    for (size_t i = 0; i < 100; i ++) {
-        putchar(getchar());
+    printf("Hello RISC-V U-Mode from ELF.\n");
+    for (size_t i = 0; i < 10; i ++) {
+        int c = getchar();
+        printf("getchar %c\n", c);
     }
+    printf("exit..\n");
     return 0;
 }
