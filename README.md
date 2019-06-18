@@ -41,12 +41,15 @@ multiple user mode.
 lazy loading.
 
 ### [Step 10](steps/10/README.md)
-task state: ready, running and blocked.
+task state: created, ready, running and terminated.
 
 ### [Step 11](steps/11/README.md)
-thread, mutex, condition variable. futex!
+task state: blocking.
 
 ### [Step 12](steps/12/README.md)
+thread, mutex, condition variable. futex!
+
+### [Step 13](steps/13/README.md)
 security (NX, SSP, ASLR, execute-only, SMEP/SMAP)
 
 ## References

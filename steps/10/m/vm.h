@@ -7,6 +7,7 @@
 #include "arch/riscv/machine.h"
 
 #define PAGE_SIZE           (RISCV_PGSIZE) // 4KiB
+#define PAGE_OFFSET(x)      ((x) & (PAGE_SIZE - 1))
 #define PAGE_ALIGN(x)       ((x) & ~(PAGE_SIZE - 1))
 #define PAGE_ALIGN_UP(x)    (PAGE_ALIGN((x) + (PAGE_SIZE - 1)))
 #define PAGE_NUM(addr)      (((uintptr_t)(addr)) >> RISCV_PGSHIFT)
