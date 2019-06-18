@@ -1,7 +1,14 @@
 # Step 10
 
-## task state: ready, running and blocked.
-このstepではuser modeプログラムのtaskの状態の管理をします. このstepまでのtaskはblockedという状態がありませんでした. 通常taskは何らかの待ち状態(e.g. keyboardからの入力待ち, ネットワークからのパケット待ち, 別taskからのレスポンス待ち)であることがほとんどで, この状態をblocked状態として管理します. blocked状態のtaskにはCPUを割り当てません. すべてのtaskがblocked状態となった場合はidle taskと呼ばれる特別なtaskを実行しtaskのblocked状態が解除されるのを待ちます.
+## task state: intruducing blocking.
+このstepでは前のstepで導入したstask stateにblocking状態を追加します. blocking状態は何かイベントを待つ状態です. このstepではイベントとしてkeyboardの入力待ちを行います.
+keyboardの入力待ちの実装に, uart入力割り込みのハンドリングをします.
+
+
+
+
+
+user modeプログラムのtaskの状態の管理をします. このstepまでのtaskはblockedという状態がありませんでした. 通常taskは何らかの待ち状態(e.g. keyboardからの入力待ち, ネットワークからのパケット待ち, 別taskからのレスポンス待ち)であることがほとんどで, この状態をblocked状態として管理します. blocked状態のtaskにはCPUを割り当てません. すべてのtaskがblocked状態となった場合はidle taskと呼ばれる特別なtaskを実行しtaskのblocked状態が解除されるのを待ちます.
 
 ### scheduler
 

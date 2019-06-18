@@ -27,6 +27,7 @@ static task_t* dequeue()
     if (task_is_single(p)) {
         queue = NULL;
     } else {
+        task_dequeue(p);
         queue = p->next;
     }
     ready_task(p);
