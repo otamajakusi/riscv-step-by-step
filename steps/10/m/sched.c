@@ -14,6 +14,7 @@ static void enter_idle() __attribute__((noreturn));
 static void idle()
 {
     for (;;) {
+        asm volatile ("wfi");
     }
 }
 
