@@ -13,6 +13,10 @@ static void handle_write(uintptr_t* regs, const task_t* curr)
 {
     uintptr_t va = regs[REG_CTX_A2];
     uintptr_t pa = va_to_pa(curr->pte, va, 0);
+    if (pa == -1u) {
+        printf("error: va %x\n", va);
+        return;
+    }
     char *c = (char*)(PAGE_OFFSET(va) + pa);
     putchar(*c);
 }

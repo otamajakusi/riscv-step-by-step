@@ -160,6 +160,10 @@ int load_program_segment(
     size = size > PAGE_SIZE ? PAGE_SIZE : size;
     const void* from = (const char*)ehdr + phdr->p_offset + va_page_offset;
     uint64_t pa = va_to_pa(ptes1st, va, validate_page);
+    if (pa == -1ull) {
+        printf("error: va %lx\n", va);
+        return -1;
+    }
     void* to = (void*)(uintptr_t)(pa);
     printf("copying %p --> %p (sz:%lx)\n", from, to, size);
     memcpy(to, from, size);
