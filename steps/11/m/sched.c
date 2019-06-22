@@ -89,7 +89,7 @@ void ready_task(task_t *p)
     p->state = task_state_ready;
 }
 
-void switch_task(uintptr_t* regs, uintptr_t mepc)
+void schedule(uintptr_t* regs, uintptr_t mepc)
 {
     task_t *curr = get_current_task();
     if (curr != NULL) { // curr is not idle
@@ -113,7 +113,7 @@ void switch_task(uintptr_t* regs, uintptr_t mepc)
     }
 }
 
-void schedule()
+void start_schedule()
 {
     // jump entry with U-Mode
     task_t *curr = get_current_task();

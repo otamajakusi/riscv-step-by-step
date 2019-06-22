@@ -82,7 +82,7 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         return;
     } else if ((mcause & ~(1u << 31)) == intr_m_timer) {
         handle_timer_interrupt();
-        switch_task(regs, mepc);
+        schedule(regs, mepc);
         return;
     } else if (mcause == cause_exec_page_fault ||
                mcause == cause_load_page_fault ||
@@ -171,6 +171,6 @@ int main()
         }
     }
     asm volatile("fence.i");
-    schedule();
+    start_schedule();
     return 0;
 }

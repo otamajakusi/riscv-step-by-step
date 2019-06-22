@@ -78,7 +78,7 @@ static void handle_intr(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
     if (mcause == intr_m_timer) {
         handle_timer_interrupt();
-        switch_task(regs, mepc);
+        schedule(regs, mepc);
         return;
     } else if (mcause == intr_m_external) {
         /*
@@ -199,6 +199,6 @@ int main()
         }
     }
     asm volatile("fence.i");
-    schedule();
+    start_schedule();
     return 0;
 }

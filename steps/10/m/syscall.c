@@ -30,7 +30,7 @@ void handle_syscall(uintptr_t* regs, uintptr_t mepc, const task_t* curr)
         break;
     case SYSCALL_EXIT:
         terminate_current_task();
-        return switch_task(regs, mepc);
+        return schedule(regs, mepc);
     default:
         break;
     }

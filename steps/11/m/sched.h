@@ -11,12 +11,12 @@ extern "C" {
 
 int create_task(const Elf32_Ehdr* ehdr, union sv32_pte* pte);
 task_t* get_current_task();
-void switch_task(uintptr_t* regs, uintptr_t mepc);
+void schedule(uintptr_t* regs, uintptr_t mepc);
 void terminate_current_task();
 void blocking_current_task();
 void ready_task(task_t *p);
 
-void schedule();
+void start_schedule();
 
 static inline task_t* get_current_task_safe() {
     task_t* p = get_current_task();
