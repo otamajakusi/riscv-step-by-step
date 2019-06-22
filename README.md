@@ -44,7 +44,7 @@ lazy loading.
 task state: created, ready, running and terminated.
 
 ### [Step 11](steps/11/README.md)
-task state: blocking.
+task state: blocked.
 
 ### [Step 12](steps/12/README.md)
 thread, mutex, condition variable. futex!

@@ -13,7 +13,7 @@ int create_task(const Elf32_Ehdr* ehdr, union sv32_pte* pte);
 task_t* get_current_task();
 void schedule(uintptr_t* regs, uintptr_t mepc);
 void terminate_current_task();
-void blocking_current_task();
+void block_current_task();
 void ready_task(task_t *p);
 
 void start_schedule();

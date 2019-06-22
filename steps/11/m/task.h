@@ -13,7 +13,7 @@ typedef enum {
     task_state_created = 0,
     task_state_ready,
     task_state_running,
-    task_state_blocking,
+    task_state_blocked,
     task_state_terminated,
 } task_state_t;
 

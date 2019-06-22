@@ -78,10 +78,10 @@ void terminate_current_task()
     p->state = task_state_terminated;
 }
 
-void blocking_current_task()
+void block_current_task()
 {
     task_t* p = get_current_task();
-    p->state = task_state_blocking;
+    p->state = task_state_blocked;
 }
 
 void ready_task(task_t *p)

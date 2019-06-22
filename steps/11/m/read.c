@@ -17,7 +17,7 @@ static void enqueue(task_t *curr)
     } else {
         task_enqueue(queue, curr);
     }
-    blocking_current_task();
+    block_current_task();
 }
 
 static task_t* dequeue()
