@@ -9,6 +9,8 @@
 #define PLIC_INTERRUPT_ENABLE_1     (0x0C002000) // PLIC Interrupt Enable Register 1
 #define PLIC_INTERRUPT_THRESHOLD    (0x0C200000) // PLIC Interrupt Priority Threshold Register
 
+#define PLIC_CLAIM_COMPLETE         (0x0C200004) // PLIC Claim/Complete Register (claim)
+
 void plic_enable_interrupt(int prio, int irq)
 {
     volatile uint32_t *thre_reg = (uint32_t*)PLIC_INTERRUPT_THRESHOLD;
@@ -19,4 +21,12 @@ void plic_enable_interrupt(int prio, int irq)
     *ie_reg = 1u << irq;
 }
 
+uint32_t plic_claim()
+{
+    return *((volatile uint32_t*)PLIC_CLAIM_COMPLETE);
+}
 
+void plic_complete(uint32_t irq)
+{
+    *((volatile uint32_t*)PLIC_CLAIM_COMPLETE) = irq;
+}

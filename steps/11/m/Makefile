@@ -3,7 +3,6 @@ target = m.elf
 objs = u.elf.o
 include ../../../mk/common.mk
 include ../../../mk/m.mk
-CFLAGS += -Wno-error
 
 ../u/u.elf:
 	$(MAKE) -C ../u

@@ -12,6 +12,7 @@
 #include "sched.h"
 #include "read.h"
 #include "utils.h"
+#include "plic.h"
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_CLINT_TIMEBASE_FREQ  10000000
@@ -87,8 +88,7 @@ static void handle_intr(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
          * 2. handle interrupt
          * 3. write irq number handled to claim/complete register
          */
-        volatile uint32_t *plic_claim = (uint32_t*)0x0C200004; // PLIC Claim/Complete Register (claim)
-        uint32_t irq = *plic_claim;
+        uint32_t irq = plic_claim();
         int c;
         while ((c = getchar()) != -1) {
             if (receive_read_data(c) < 0) {
@@ -98,7 +98,7 @@ static void handle_intr(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
                 }
             }
         }
-        *plic_claim = irq;
+        plic_complete(irq);
     }
 }
 
