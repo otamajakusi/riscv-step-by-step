@@ -1,3 +1,4 @@
+#pragma once
 /*
  * syscall number
  * 0: read
@@ -19,6 +20,7 @@ int __syscall0(int number);
 int __syscall1(int number, int a0);
 int __syscall2(int number, int a0, int a1);
 int __syscall3(int number, int a0, int a1, int a2);
+void __syscall1_noreturn(int number, int a0) __attribute__((noreturn));
 
 static inline int __read(int fd, void *buf, size_t count) {
     return __SYSCALL3(SYSCALL_READ, fd, buf, count);
@@ -28,8 +30,9 @@ static inline int __write(int fd, const void *buf, size_t count) {
     return __SYSCALL3(SYSCALL_WRITE, fd, buf, count);
 }
 
-static inline int __exit(int status) {
-    return __SYSCALL1(SYSCALL_EXIT, status);
+static inline void __exit(int status) __attribute__((noreturn));
+static inline void __exit(int status) {
+    __syscall1_noreturn(SYSCALL_EXIT, status);
 }
 
 #endif
