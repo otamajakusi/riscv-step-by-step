@@ -2,6 +2,26 @@
 #include "syscall.h"
 #include <string.h>
 
+typedef struct {
+   void *(*start_routine) (void *);
+   void *arg;
+} thread_arg_t;
+
+static void *thread_entry(void *arg)
+{
+    thread_arg_t *thread_arg = (thread_arg_t*)arg;
+    void *status = thread_arg->start_routine(thread_arg->arg);
+    thread_exit(status);
+}
+
+static int thread_clone(thread_t *thread, const thread_attr_t *attr,
+        void *(*start_routine) (void *), void *arg)
+{
+    thread_arg_t thread_arg = {start_routine, arg};
+    *thread = __clone(thread_entry, attr->stackaddr, &thread_arg);
+    return *thread < 0 ? -1 : 0;
+}
+
 /* thread_attr */
 int thread_attr_init(thread_attr_t *attr)
 {
@@ -26,19 +46,12 @@ int thread_attr_setstack(thread_attr_t *attr, void *stackaddr, size_t stacksize)
 int thread_create(thread_t *thread, const thread_attr_t *attr,
         void *(*start_routine) (void *), void *arg)
 {
-    (void)thread;
-    (void)attr;
-    (void)start_routine;
-    (void)arg;
-    // clone
-    return 0;
+    return thread_clone(thread, attr, start_routine, arg);
 }
 
 int thread_join(thread_t thread, void **retval)
 {
-    (void)thread;
-    (void)retval;
-    return 0;
+    return __waitpid(thread, (int*)retval);
 }
 
 void thread_exit(void *retval)
@@ -46,7 +59,7 @@ void thread_exit(void *retval)
     __exit(*(int*)retval);
 }
 
-/* mutex: Note: we don't have attr. */
+/* mutex: Note: Compare to linux, we don't have attr param. */
 int thread_mutex_init(thread_mutex_t *mutex)
 {
     memset(mutex, 0, sizeof(*mutex));
@@ -77,8 +90,7 @@ int thread_mutex_unlock(thread_mutex_t *mutex)
     return 0;
 }
 
-
-/* cond: Note: we don't have attr. */
+/* cond: Note: Compare to linux, we don't have attr param. */
 int thread_cond_init(thread_cond_t *cond)
 {
     memset(cond, 0, sizeof(*cond));

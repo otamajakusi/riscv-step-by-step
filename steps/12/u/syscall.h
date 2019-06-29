@@ -9,6 +9,8 @@
 #define SYSCALL_READ    0
 #define SYSCALL_WRITE   1
 #define SYSCALL_EXIT    32
+#define SYSCALL_CLONE   33
+#define SYSCALL_WAITPID 34
 
 #if !defined(__ASSEMBLER__)
 #define __SYSCALL0(number)                  __syscall0((number))
@@ -20,7 +22,6 @@ int __syscall0(int number);
 int __syscall1(int number, int a0);
 int __syscall2(int number, int a0, int a1);
 int __syscall3(int number, int a0, int a1, int a2);
-void __syscall1_noreturn(int number, int a0) __attribute__((noreturn));
 
 static inline int __read(int fd, void *buf, size_t count) {
     return __SYSCALL3(SYSCALL_READ, fd, buf, count);
@@ -32,7 +33,19 @@ static inline int __write(int fd, const void *buf, size_t count) {
 
 static inline void __exit(int status) __attribute__((noreturn));
 static inline void __exit(int status) {
-    __syscall1_noreturn(SYSCALL_EXIT, status);
+    __SYSCALL1(SYSCALL_EXIT, status);
+    while (1);
+}
+
+/* Note: Compare to linux syscall, we don't have flags param,
+ * and type of fn is different. */
+static inline int __clone(void *(*fn)(void*), void* stack, void *arg) {
+    return __SYSCALL3(SYSCALL_CLONE, fn, stack, arg);
+}
+
+/* Note: Compare to linux syscall, we don't have options param. */
+static inline int __waitpid(int pid, int *wstatus) {
+    return __SYSCALL2(SYSCALL_WAITPID, pid, wstatus);
 }
 
 #endif
