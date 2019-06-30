@@ -16,6 +16,9 @@ void terminate_current_task();
 void block_current_task();
 void ready_task(task_t *p);
 
+int clone_current_task(uintptr_t fn, uintptr_t stack, uintptr_t arg);
+void handle_waitpid(uintptr_t* regs, task_t* curr);
+
 void start_schedule();
 
 static inline task_t* get_current_task_safe() {

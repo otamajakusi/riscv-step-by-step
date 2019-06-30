@@ -84,7 +84,7 @@ trap_vector:
     lw      x17, REG_CTX_A7*4(x1)
     lw      x18, REG_CTX_S2*4(x1)
     lw      x19, REG_CTX_S3*4(x1)
-    lw      x10, REG_CTX_S4*4(x1)
+    lw      x20, REG_CTX_S4*4(x1)
     lw      x21, REG_CTX_S5*4(x1)
     lw      x22, REG_CTX_S6*4(x1)
     lw      x23, REG_CTX_S7*4(x1)

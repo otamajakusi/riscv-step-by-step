@@ -5,11 +5,13 @@
 #include "task.h"
 #include "consts.h"
 
-static task_t task[USER_NUM];
+static task_t task[USER_NUM_MAX];
 static int curr_task_num = 0;
 
 static void idle() __attribute__((noreturn));
 static void enter_idle() __attribute__((noreturn));
+
+static struct task_t* wait_queue = NULL;
 
 static void idle()
 {
@@ -27,9 +29,9 @@ static void enter_idle()
 
 static task_t* pickup_next_task()
 {
-    int next = (curr_task_num + 1) % USER_NUM;
+    int next = (curr_task_num + 1) % USER_NUM_MAX;
     task_t *curr = get_current_task();
-    for (int i = 0; i < USER_NUM; i ++, next = (next + 1) % USER_NUM) {
+    for (int i = 0; i < USER_NUM_MAX; i ++, next = (next + 1) % USER_NUM_MAX) {
         if (task[next].state == task_state_ready ||
             task[next].state == task_state_running) {
             if (curr == &task[next]) {
@@ -51,7 +53,7 @@ static task_t* pickup_next_task()
 
 int create_task(const Elf32_Ehdr* ehdr, union sv32_pte* pte)
 {
-    for (size_t i = 0; i < USER_NUM; i ++) {
+    for (size_t i = 0; i < USER_NUM_MAX; i ++) {
         if (task[i].state == task_state_created) {
             task_t* p = &task[i];
             p->entry = ehdr->e_entry;
@@ -59,6 +61,23 @@ int create_task(const Elf32_Ehdr* ehdr, union sv32_pte* pte)
             p->pte = pte;
             p->state = task_state_ready;
             return 0;
+        }
+    }
+    return -1;
+}
+
+int clone_current_task(uintptr_t fn, uintptr_t stack, uintptr_t arg)
+{
+    task_t *curr = get_current_task();
+    for (size_t i = 0; i < USER_NUM_MAX; i ++) {
+        if (task[i].state == task_state_created) {
+            task_t* p = &task[i];
+            memcpy(p, curr, sizeof(task_t));
+            p->mepc = fn;
+            p->regs[REG_CTX_SP]= stack;
+            p->regs[REG_CTX_A0]= arg;
+            p->state = task_state_ready;
+            return i;
         }
     }
     return -1;
@@ -76,6 +95,27 @@ void terminate_current_task()
 {
     task_t* p = get_current_task();
     p->state = task_state_terminated;
+    p->exitcode = p->regs[REG_CTX_A1];
+    // search wait_queue
+    if (wait_queue == NULL) {
+        return;
+    }
+    task_t *w = wait_queue;
+    do {
+        if (w->state == task_state_blocked &&
+            w->regs[REG_CTX_A1] == (uintptr_t)curr_task_num) {
+            if (task_is_single(w)) {
+                wait_queue = NULL;
+            } else {
+                task_dequeue(w);
+                wait_queue = w->next;
+            }
+            printf("%p wakeup by exit task %p(%d)\n", w, p, curr_task_num);
+            w->state = task_state_ready;
+            return;
+        }
+        w = w->next;
+    } while (w != wait_queue);
 }
 
 void block_current_task()
@@ -87,6 +127,37 @@ void block_current_task()
 void ready_task(task_t *p)
 {
     p->state = task_state_ready;
+}
+
+void handle_waitpid(uintptr_t* regs, task_t* curr)
+{
+    uintptr_t pid = regs[REG_CTX_A1];
+    if (pid > USER_NUM_MAX) {
+        // illegal pid
+        printf("illegal pid %d\n", pid);
+        regs[REG_CTX_A0] = -1;
+        return;
+    }
+    if (task[pid].state == task_state_terminated) {
+        uintptr_t va = regs[REG_CTX_A2];
+        uintptr_t pa = va_to_pa(curr->pte, va, 0);
+        if (pa == -1u) {
+            printf("error: va %x\n", va);
+            regs[REG_CTX_A0] = -1;
+            return;
+        }
+        // FIXME: make sure sizeof(uintptr_r) at (PAGE_OFFSET(va) + pa) is not page boundary.
+        *(uintptr_t*)(PAGE_OFFSET(va) + pa) = task[pid].exitcode;
+        return;
+    }
+    if (task[pid].state != task_state_ready &&
+        task[pid].state != task_state_blocked) {
+        printf("pid %d not available %d\n", pid, task[pid].state);
+        regs[REG_CTX_A0] = -1;
+        return;
+    }
+    enqueue(&wait_queue, curr);
+    block_current_task();
 }
 
 void schedule(uintptr_t* regs, uintptr_t mepc)

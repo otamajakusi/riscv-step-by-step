@@ -10,6 +10,7 @@
 #include "consts.h"
 #include "sched.h"
 #include "read.h"
+#include "wait.h"
 
 static void handle_write(uintptr_t* regs, const task_t* curr)
 {
@@ -21,6 +22,15 @@ static void handle_write(uintptr_t* regs, const task_t* curr)
     }
     char *c = (char*)(PAGE_OFFSET(va) + pa);
     putchar(*c);
+}
+
+static void handle_clone(uintptr_t* regs, const task_t* curr)
+{
+    (void)curr;
+    regs[REG_CTX_A0] = clone_current_task(
+            regs[REG_CTX_A1],
+            regs[REG_CTX_A2],
+            regs[REG_CTX_A3]);
 }
 
 void handle_syscall(uintptr_t* regs, uintptr_t mepc, task_t* curr)
@@ -35,6 +45,12 @@ void handle_syscall(uintptr_t* regs, uintptr_t mepc, task_t* curr)
     case SYSCALL_EXIT:
         terminate_current_task();
         return schedule(regs, mepc);
+    case SYSCALL_CLONE:
+        handle_clone(regs, curr);
+        return schedule(regs, mepc + 4);
+    case SYSCALL_WAITPID:
+        handle_waitpid(regs, curr);
+        return schedule(regs, mepc + 4);
     default:
         break;
     }

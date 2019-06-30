@@ -12,7 +12,13 @@ typedef struct {
     size_t stacksize;
 } thread_attr_t;
 
-typedef int thread_t;
+typedef struct {
+    int id;
+    // following members are used internally.
+    void *(*start_routine) (void *);
+    void *arg;
+} thread_t;
+
 typedef int thread_mutex_t;
 typedef int thread_cond_t;
 
@@ -25,7 +31,7 @@ int thread_attr_setstack(thread_attr_t *attr, void *stackaddr, size_t stacksize)
 /* thread */
 int thread_create(thread_t *thread, const thread_attr_t *attr,
         void *(*start_routine) (void *), void *arg);
-int thread_join(thread_t thread, void **retval);
+int thread_join(thread_t *thread, void **retval);
 void thread_exit(void *retval) __attribute__((noreturn));
 
 /* mutex: Note: we don't have attr. */

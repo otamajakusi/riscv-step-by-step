@@ -27,8 +27,8 @@
 extern uintptr_t u_elf_start;
 extern uintptr_t u_elf_size;
 
-static union sv32_pte ptes1st[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
-static union sv32_pte ptes2nd[USER_NUM][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
+static union sv32_pte ptes1st[USER_NUM_INIT][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
+static union sv32_pte ptes2nd[USER_NUM_INIT][PTE_ENTRY_NUM] __attribute__((aligned(PAGE_SIZE)));
 
 static void handle_timer_interrupt()
 {
@@ -185,7 +185,7 @@ int main()
     set_trap_fn(handler);
     write_csr(mie, read_csr(mie) | MIP_MTIP | MIP_MEIP);
     handle_timer_interrupt();
-    for (size_t i = 0; i < USER_NUM; i ++) {
+    for (size_t i = 0; i < USER_NUM_INIT; i ++) {
         const Elf32_Ehdr* ehdr = check_elf((void*)&u_elf_start, (uintptr_t)&u_elf_size);
         if (ehdr == NULL) {
             printf("error: illegal elf\n");

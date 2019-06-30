@@ -9,31 +9,6 @@
 
 static struct task_t* queue = NULL;
 
-static void enqueue(task_t *curr)
-{
-    if (queue == NULL) {
-        task_single(curr);
-        queue = curr;
-    } else {
-        task_enqueue(queue, curr);
-    }
-    block_current_task();
-}
-
-static task_t* dequeue()
-{
-    ASSERT(queue != NULL);
-    task_t *p = queue;
-    if (task_is_single(p)) {
-        queue = NULL;
-    } else {
-        task_dequeue(p);
-        queue = p->next;
-    }
-    ready_task(p);
-    return p;
-}
-
 static int retrieve_read_data(uintptr_t* regs, task_t* p, int c)
 {
     uintptr_t va = regs[REG_CTX_A2];
@@ -46,7 +21,8 @@ static int retrieve_read_data(uintptr_t* regs, task_t* p, int c)
 void handle_read(uintptr_t* regs, task_t* curr)
 {
     (void)regs;
-    enqueue(curr);
+    enqueue(&queue, curr);
+    block_current_task();
 }
 
 int receive_read_data(char c)
@@ -55,7 +31,8 @@ int receive_read_data(char c)
         return -1;
     }
 
-    task_t* p = dequeue();
+    task_t* p = dequeue(&queue);
+    ready_task(p);
     retrieve_read_data(p->regs, p, c);
     return 0;
 }

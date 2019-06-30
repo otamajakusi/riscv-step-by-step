@@ -4,6 +4,7 @@
 #include "regs.h"
 #include "vm.h"
 #include "elfldr.h"
+#include "utils.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,6 +25,7 @@ typedef struct task_t {
     uintptr_t       regs[REG_CTX_NUM];
     uintptr_t       mepc;
     task_state_t    state;
+    uintptr_t       exitcode;
     struct task_t*  prev;
     struct task_t*  next;
 } task_t;
@@ -68,6 +70,29 @@ static inline void task_dequeue(task_t *elem)
 {
     elem->next->prev = elem->prev;
     elem->prev->next = elem->next;
+}
+
+static inline void enqueue(task_t **root, task_t *curr)
+{
+    if (*root == NULL) {
+        task_single(curr);
+        *root = curr;
+    } else {
+        task_enqueue(*root, curr);
+    }
+}
+
+static inline task_t* dequeue(task_t **root)
+{
+    ASSERT(*root != NULL);
+    task_t *p = *root;
+    if (task_is_single(p)) {
+        *root = NULL;
+    } else {
+        task_dequeue(p);
+        *root = p->next;
+    }
+    return p;
 }
 
 #ifdef __cplusplus

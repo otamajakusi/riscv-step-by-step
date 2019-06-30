@@ -1,6 +1,7 @@
 #include "thread.h"
 #include "syscall.h"
 #include <string.h>
+#include <stdio.h>
 
 typedef struct {
    void *(*start_routine) (void *);
@@ -9,17 +10,18 @@ typedef struct {
 
 static void *thread_entry(void *arg)
 {
-    thread_arg_t *thread_arg = (thread_arg_t*)arg;
-    void *status = thread_arg->start_routine(thread_arg->arg);
-    thread_exit(status);
+    thread_t *thread = (thread_t*)arg;
+    int status = (int)thread->start_routine(thread->arg);
+    thread_exit(&status);
 }
 
 static int thread_clone(thread_t *thread, const thread_attr_t *attr,
         void *(*start_routine) (void *), void *arg)
 {
-    thread_arg_t thread_arg = {start_routine, arg};
-    *thread = __clone(thread_entry, attr->stackaddr, &thread_arg);
-    return *thread < 0 ? -1 : 0;
+    thread->start_routine = start_routine;
+    thread->arg = arg;
+    thread->id = __clone(thread_entry, attr->stackaddr + attr->stacksize, thread);
+    return thread->id < 0 ? -1 : 0;
 }
 
 /* thread_attr */
@@ -49,9 +51,10 @@ int thread_create(thread_t *thread, const thread_attr_t *attr,
     return thread_clone(thread, attr, start_routine, arg);
 }
 
-int thread_join(thread_t thread, void **retval)
+/* Note: Compare to linux syscall, we use thread_t *, not thread_t. */
+int thread_join(thread_t *thread, void **retval)
 {
-    return __waitpid(thread, (int*)retval);
+    return __waitpid(thread->id, (int*)retval);
 }
 
 void thread_exit(void *retval)
