@@ -10,7 +10,6 @@
 #include "consts.h"
 #include "sched.h"
 #include "read.h"
-#include "wait.h"
 
 static void handle_write(uintptr_t* regs, const task_t* curr)
 {

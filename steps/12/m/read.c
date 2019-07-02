@@ -21,7 +21,7 @@ static int retrieve_read_data(uintptr_t* regs, task_t* p, int c)
 void handle_read(uintptr_t* regs, task_t* curr)
 {
     (void)regs;
-    enqueue(&queue, curr);
+    task_enqueue_to_root(&queue, curr);
     block_current_task();
 }
 
@@ -31,7 +31,7 @@ int receive_read_data(char c)
         return -1;
     }
 
-    task_t* p = dequeue(&queue);
+    task_t* p = task_dequeue_from_root(&queue, queue);
     ready_task(p);
     retrieve_read_data(p->regs, p, c);
     return 0;

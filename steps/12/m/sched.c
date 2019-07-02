@@ -104,12 +104,7 @@ void terminate_current_task()
     do {
         if (w->state == task_state_blocked &&
             w->regs[REG_CTX_A1] == (uintptr_t)curr_task_num) {
-            if (task_is_single(w)) {
-                wait_queue = NULL;
-            } else {
-                task_dequeue(w);
-                wait_queue = w->next;
-            }
+            task_dequeue_from_root(&wait_queue, w);
             printf("%p wakeup by exit task %p(%d)\n", w, p, curr_task_num);
             w->state = task_state_ready;
             return;
@@ -156,7 +151,7 @@ void handle_waitpid(uintptr_t* regs, task_t* curr)
         regs[REG_CTX_A0] = -1;
         return;
     }
-    enqueue(&wait_queue, curr);
+    task_enqueue_to_root(&wait_queue, curr);
     block_current_task();
 }
 

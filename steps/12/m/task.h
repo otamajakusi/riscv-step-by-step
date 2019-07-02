@@ -72,27 +72,28 @@ static inline void task_dequeue(task_t *elem)
     elem->prev->next = elem->next;
 }
 
-static inline void enqueue(task_t **root, task_t *curr)
+static inline void task_enqueue_to_root(task_t **root, task_t *task)
 {
     if (*root == NULL) {
-        task_single(curr);
-        *root = curr;
+        task_single(task);
+        *root = task;
     } else {
-        task_enqueue(*root, curr);
+        task_enqueue(*root, task);
     }
 }
 
-static inline task_t* dequeue(task_t **root)
+static inline task_t* task_dequeue_from_root(task_t **root, task_t *task)
 {
     ASSERT(*root != NULL);
-    task_t *p = *root;
-    if (task_is_single(p)) {
+    if (task_is_single(*root)) {
         *root = NULL;
     } else {
-        task_dequeue(p);
-        *root = p->next;
+        task_dequeue(task);
+        if (*root == task) {
+            *root = task->next;
+        }
     }
-    return p;
+    return task;
 }
 
 #ifdef __cplusplus
