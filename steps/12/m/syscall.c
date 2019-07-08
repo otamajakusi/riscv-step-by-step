@@ -10,6 +10,7 @@
 #include "consts.h"
 #include "sched.h"
 #include "read.h"
+#include "futex.h"
 
 static void handle_write(uintptr_t* regs, const task_t* curr)
 {
@@ -42,13 +43,16 @@ void handle_syscall(uintptr_t* regs, uintptr_t mepc, task_t* curr)
         handle_write(regs, curr);
         break;
     case SYSCALL_EXIT:
-        terminate_current_task();
+        terminate_current_task(regs[REG_CTX_A1]);
         return schedule(regs, mepc);
     case SYSCALL_CLONE:
         handle_clone(regs, curr);
         return schedule(regs, mepc + 4);
     case SYSCALL_WAITPID:
         handle_waitpid(regs, curr);
+        return schedule(regs, mepc + 4);
+    case SYSCALL_FUTEX:
+        handle_futex(regs, curr);
         return schedule(regs, mepc + 4);
     default:
         break;

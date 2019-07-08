@@ -34,7 +34,7 @@ static void handle_timer_interrupt()
 {
     volatile uintptr_t *mtimecmp = (uintptr_t*)(SIFIVE_TIMECMP_ADDR);
     // volatile uintptr_t *mtime = (uintptr_t*)(SIFIVE_TIME_ADDR);
-    uint32_t tick = SIFIVE_CLINT_TIMEBASE_FREQ / 100;
+    uint32_t tick = SIFIVE_CLINT_TIMEBASE_FREQ / 1000;
     uint64_t next = (*(uint64_t*)mtimecmp) + tick;
     uint32_t mtimecmp_lo = next;
     uint32_t mtimecmp_hi = next >> 32;

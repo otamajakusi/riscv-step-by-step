@@ -11,6 +11,16 @@
 #define SYSCALL_EXIT    32
 #define SYSCALL_CLONE   33
 #define SYSCALL_WAITPID 34
+#define SYSCALL_FUTEX   35
+
+#define FUTEX_WAIT      0
+#define FUTEX_WAKE      1
+
+// error
+#define EAGAIN          11
+#define EFAULT          14
+#define EINVAL          22
+#define ENOSYS          38
 
 #if !defined(__ASSEMBLER__)
 #define __SYSCALL0(number)                  __syscall0((number))
@@ -46,6 +56,11 @@ static inline int __clone(void *(*fn)(void*), void* stack, void *arg) {
 /* Note: Compare to linux syscall, we don't have options param. */
 static inline int __waitpid(int pid, int *wstatus) {
     return __SYSCALL2(SYSCALL_WAITPID, pid, wstatus);
+}
+
+/* Note: No timeout, uadr2 and val3 for now. */
+static inline int __futex(int *uaddr, int futex_op, int val) {
+    return __SYSCALL3(SYSCALL_FUTEX, uaddr, futex_op, val);
 }
 
 #endif

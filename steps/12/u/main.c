@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "thread.h"
 
-#define THREAD_NUM  (3)
+#define THREAD_NUM  (5)
 
 typedef struct {
     int arg;
@@ -11,13 +11,21 @@ typedef struct {
 
 static uint32_t thread_stack[THREAD_NUM][512 / sizeof(uint32_t)];
 
+static volatile int count = 0;
+
 static void *thread_entry(void *arg)
 {
     thread_arg_t *thread_arg = (thread_arg_t*)arg;
+    (void)thread_arg;
     for (int i = 0; i < 10; i ++) {
-        printf("Hello from thread(%d) %d. arg is: %x\n", thread_arg->tag, i, thread_arg->arg);
+        //printf("Hello from thread(%d) %d. arg is: %x\n", thread_arg->tag, i, thread_arg->arg);
     }
-    return (void*)thread_arg->ret;
+    for (int i = 0; i < 1000000; i ++) {
+        count ++;
+    }
+    printf("count = %d\n", count);
+    //return (void*)thread_arg->ret;
+    return (void*)count;
 }
 
 int main()
@@ -26,6 +34,8 @@ int main()
     thread_arg_t thread_arg[THREAD_NUM];
     thread_t thread[THREAD_NUM];
     thread_attr_t thread_attr[THREAD_NUM];
+    thread_mutex_t mutex;
+    thread_mutex_init(&mutex);
     for (int i = 0; i < THREAD_NUM; i ++) {
         thread_arg[i].arg = 0xdeadbeef;
         thread_arg[i].ret = 0xcafebebe;
@@ -34,10 +44,10 @@ int main()
         int ret = thread_create(&thread[i], &thread_attr[i], thread_entry, &thread_arg[i]);
         printf("ret %d, thread id %d\n", ret, thread[i].id);
     }
-    for (int i = 0; i < THREAD_NUM; i ++) {
+    for (int i = THREAD_NUM - 1; i >= 0; i --) { // by reverse order
         int retval;
         thread_join(&thread[i], (void**)&retval);
-        printf("joined %x\n", retval);
+        printf("joined %x(%d), thread id %d\n", retval, retval, thread[i].id);
     }
     return 0;
 }

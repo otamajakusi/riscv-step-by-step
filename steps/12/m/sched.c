@@ -91,11 +91,11 @@ task_t* get_current_task()
     return &task[curr_task_num];
 }
 
-void terminate_current_task()
+void terminate_current_task(int code)
 {
     task_t* p = get_current_task();
     p->state = task_state_terminated;
-    p->exitcode = p->regs[REG_CTX_A1];
+    p->exitcode = code;
     // search wait_queue
     if (wait_queue == NULL) {
         return;
@@ -107,6 +107,15 @@ void terminate_current_task()
             task_dequeue_from_root(&wait_queue, w);
             printf("%p wakeup by exit task %p(%d)\n", w, p, curr_task_num);
             w->state = task_state_ready;
+            uintptr_t va = w->regs[REG_CTX_A2];
+            uintptr_t pa = va_to_pa(w->pte, va, 0);
+            if (pa == -1u) {
+                printf("error: va %x\n", va);
+                w->regs[REG_CTX_A0] = -1;
+                return;
+            }
+            // FIXME: make sure sizeof(uintptr_r) at (PAGE_OFFSET(va) + pa) is not page boundary.
+            *(uintptr_t*)(PAGE_OFFSET(va) + pa) = p->exitcode;
             return;
         }
         w = w->next;
