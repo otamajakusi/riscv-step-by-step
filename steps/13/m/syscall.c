@@ -10,6 +10,7 @@
 #include "consts.h"
 #include "sched.h"
 #include "read.h"
+#include "futex.h"
 
 static void handle_write(uintptr_t* regs, const task_t* curr)
 {
@@ -49,6 +50,9 @@ void handle_syscall(uintptr_t* regs, uintptr_t mepc, task_t* curr)
         return schedule(regs, mepc + 4);
     case SYSCALL_WAITPID:
         handle_waitpid(regs, curr);
+        return schedule(regs, mepc + 4);
+    case SYSCALL_FUTEX:
+        handle_futex(regs, curr);
         return schedule(regs, mepc + 4);
     default:
         break;
