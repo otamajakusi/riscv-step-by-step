@@ -8,17 +8,14 @@
 static task_t task[USER_NUM];
 static int curr_task_num = 0;
 
-static void idle() __attribute__((noreturn));
-static void enter_idle() __attribute__((noreturn));
-
-static void idle()
+static void __attribute__((noreturn)) idle()
 {
     for (;;) {
         asm volatile ("wfi");
     }
 }
 
-static void enter_idle()
+static void __attribute__((noreturn)) enter_idle()
 {
     write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_M << 11));
     write_csr(mepc, idle);
