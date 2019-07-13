@@ -1,9 +1,5 @@
 #pragma once
-/*
- * syscall number
- * 0: read
- * 1: write
- */
+
 #include <stddef.h>
 
 #define SYSCALL_READ    0

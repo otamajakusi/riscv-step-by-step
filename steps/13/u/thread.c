@@ -2,11 +2,17 @@
 #include "syscall.h"
 #include <string.h>
 #include <stdio.h>
+#include "atomic.h"
 
-#define MUTEX_EXPERIMENTAL  1
+#define MUTEX_EXPERIMENTAL          0
 
-#define MUTEX_UNLOCKED  0
-#define MUTEX_LOCKED    1
+#define MUTEX_UNLOCKED              (0)
+#if MUTEX_EXPERIMENTAL == 1
+#define MUTEX_LOCKED                (1)
+#else
+#define MUTEX_LOCKED_UNCONTENDED    (1)
+#define MUTEX_LOCKED_CONTENDED      (2)
+#endif
 
 typedef struct {
    void *(*start_routine) (void *);
@@ -89,13 +95,28 @@ int thread_mutex_lock(thread_mutex_t *mutex)
     } while (ret == -EAGAIN);
     return 0;
 #else
+    if (thread_mutex_trylock(mutex) == 0) {
+        return 0;
+    }
+    while (atomic_exchange((uint32_t*)mutex, MUTEX_LOCKED_CONTENDED) != MUTEX_UNLOCKED) {
+        __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED, NULL);
+    }
+    return 0;
 #endif
 }
 
 int thread_mutex_trylock(thread_mutex_t *mutex)
 {
+#if MUTEX_EXPERIMENTAL == 1
     (void)mutex;
-    return 0;
+    return -EAGAIN;
+#else
+    // returns if *mutex == UNLOCKED
+    if (atomic_compare_exchange((uint32_t*)mutex, MUTEX_UNLOCKED, MUTEX_LOCKED_UNCONTENDED)) {
+        return 0;
+    }
+    return -EAGAIN;
+#endif
 }
 
 int thread_mutex_unlock(thread_mutex_t *mutex)
@@ -103,6 +124,10 @@ int thread_mutex_unlock(thread_mutex_t *mutex)
 #if MUTEX_EXPERIMENTAL == 1
     return __futex(mutex, FUTEX_WAKE_EXP, 1, MUTEX_UNLOCKED);
 #else
+    if (atomic_exchange((uint32_t*)mutex, MUTEX_UNLOCKED) == MUTEX_LOCKED_CONTENDED) {
+        __futex(mutex, FUTEX_WAKE, 1, NULL);
+    }
+    return 0;
 #endif
 }
 
