@@ -3,6 +3,11 @@
 #include <string.h>
 #include <stdio.h>
 
+#define MUTEX_EXPERIMENTAL  1
+
+#define MUTEX_UNLOCKED  0
+#define MUTEX_LOCKED    1
+
 typedef struct {
    void *(*start_routine) (void *);
    void *arg;
@@ -77,7 +82,14 @@ int thread_mutex_destroy(thread_mutex_t *mutex)
 
 int thread_mutex_lock(thread_mutex_t *mutex)
 {
-    return __futex(mutex, FUTEX_WAIT, 1);
+#if MUTEX_EXPERIMENTAL == 1
+    int ret;
+    do {
+        ret = __futex(mutex, FUTEX_WAIT_EXP, MUTEX_UNLOCKED, MUTEX_LOCKED);
+    } while (ret == -EAGAIN);
+    return 0;
+#else
+#endif
 }
 
 int thread_mutex_trylock(thread_mutex_t *mutex)
@@ -88,7 +100,10 @@ int thread_mutex_trylock(thread_mutex_t *mutex)
 
 int thread_mutex_unlock(thread_mutex_t *mutex)
 {
-    return __futex(mutex, FUTEX_WAKE, 1);
+#if MUTEX_EXPERIMENTAL == 1
+    return __futex(mutex, FUTEX_WAKE_EXP, 1, MUTEX_UNLOCKED);
+#else
+#endif
 }
 
 /* cond: Note: Compare to linux, we don't have attr param. */

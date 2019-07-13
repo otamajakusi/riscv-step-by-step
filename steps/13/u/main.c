@@ -4,34 +4,30 @@
 #define THREAD_NUM  (5)
 
 typedef struct {
-    int arg;
-    int ret;
-    int tag;
+    thread_mutex_t *mutex;
 } thread_arg_t;
 
 static uint32_t thread_stack[THREAD_NUM][512 / sizeof(uint32_t)];
 
 static volatile int count = 0;
 
-static void __attribute__((noinline)) increment_count(int i)
+static void __attribute__((noinline)) increment_count(int i, thread_mutex_t *mutex)
 {
+    (void)mutex;
+    thread_mutex_lock(mutex);
     int c = count;
     if ((i % 0x1000) == 0) putchar('.');
     c ++;
     count = c;
+    thread_mutex_unlock(mutex);
 }
 
 static void *thread_entry(void *arg)
 {
     thread_arg_t *thread_arg = (thread_arg_t*)arg;
-    (void)thread_arg;
-    for (int i = 0; i < 10; i ++) {
-        //printf("Hello from thread(%d) %d. arg is: %x\n", thread_arg->tag, i, thread_arg->arg);
+    for (int i = 0; i < 100000; i ++) {
+        increment_count(i, thread_arg->mutex);
     }
-    for (int i = 0; i < 1000000; i ++) {
-        increment_count(i);
-    }
-    //return (void*)thread_arg->ret;
     return (void*)count;
 }
 
@@ -44,9 +40,7 @@ int main()
     thread_mutex_t mutex;
     thread_mutex_init(&mutex);
     for (int i = 0; i < THREAD_NUM; i ++) {
-        thread_arg[i].arg = 0xdeadbeef;
-        thread_arg[i].ret = 0xcafebebe;
-        thread_arg[i].tag = i;
+        thread_arg[i].mutex = &mutex;
         thread_attr_setstack(&thread_attr[i], thread_stack[i], sizeof(thread_stack[i]));
         int ret = thread_create(&thread[i], &thread_attr[i], thread_entry, &thread_arg[i]);
         printf("ret %d, thread id %d\n", ret, thread[i].id);

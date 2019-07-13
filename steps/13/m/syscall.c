@@ -10,18 +10,15 @@
 #include "consts.h"
 #include "sched.h"
 #include "read.h"
+#include "task.h"
 #include "futex.h"
 
 static void handle_write(uintptr_t* regs, const task_t* curr)
 {
     uintptr_t va = regs[REG_CTX_A2];
-    uintptr_t pa = va_to_pa(curr->pte, va, 0);
-    if (pa == -1u) {
-        printf("error: va %x\n", va);
-        return;
-    }
-    char *c = (char*)(PAGE_OFFSET(va) + pa);
-    putchar(*c);
+    char c;
+    load_8_from_user(curr, va, (uint8_t*)&c);
+    putchar(c);
 }
 
 static void handle_clone(uintptr_t* regs, const task_t* curr)

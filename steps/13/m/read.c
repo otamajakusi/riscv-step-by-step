@@ -6,14 +6,14 @@
 #include <stdio.h>
 #include "read.h"
 #include "sched.h"
+#include "task.h"
 
 static struct task_t* queue = NULL;
 
 static int retrieve_read_data(uintptr_t* regs, task_t* p, int c)
 {
     uintptr_t va = regs[REG_CTX_A2];
-    uintptr_t pa = va_to_pa(p->pte, va, 0);
-    *(char*)(PAGE_OFFSET(va) + pa) = c;
+    store_8_to_user(p, va, (uint8_t)c);
     regs[REG_CTX_A0] = 1; // return size
     return 0;
 }

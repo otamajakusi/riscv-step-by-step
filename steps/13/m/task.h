@@ -30,6 +30,11 @@ typedef struct task_t {
     struct task_t*  next;
 } task_t;
 
+/* copy from/to user */
+int store_32_to_user(const task_t* task, uintptr_t va, uint32_t val);
+int load_32_from_user(const task_t* task, uintptr_t va, uint32_t *val);
+int store_8_to_user(const task_t* task, uintptr_t va, uint8_t val);
+int load_8_from_user(const task_t* task, uintptr_t va, uint8_t *val);
 
 /*
 (B=)prev - A - next
