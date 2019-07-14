@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "atomic.h"
 
-int __attribute__ ((noinline))
+static int __attribute__ ((noinline))
     _lr_sc_test_1(uint32_t *addr, uint32_t expected, uint32_t desired)
 {
     (void)addr;
@@ -17,7 +17,7 @@ int __attribute__ ((noinline))
 
 }
 
-int __attribute__ ((noinline))
+static int __attribute__ ((noinline))
     _lr_sc_test_2(uint32_t *addr, uint32_t expected, uint32_t desired)
 {
     (void)addr;

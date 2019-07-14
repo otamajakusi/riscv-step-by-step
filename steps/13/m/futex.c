@@ -68,6 +68,7 @@ static int handle_futex_wait(int uaddr, int val, task_t* curr)
         printf("error: va %x\n", uaddr);
         return -EFAULT;
     }
+    //printf("\n[task %p, wait act %ld, val %d]\n", curr, act, val);
     if (act != (uint32_t)val) {
         return -EAGAIN;
     }
@@ -89,7 +90,7 @@ static int handle_futex_wake(int uaddr, int val, task_t* curr)
         if (w->state == task_state_blocked &&
             w->regs[REG_CTX_A1] == (uintptr_t)uaddr) {
             task_dequeue_from_root(&queue, w);
-            // printf("%p wake by task %p\n", w, curr);
+            //printf("\n[%p wake by task %p]\n", w, curr);
             ready_task(w);
             num ++;
         }

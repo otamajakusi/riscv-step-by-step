@@ -100,9 +100,10 @@ int thread_mutex_lock(thread_mutex_t *mutex)
     }
     while (1) {
         int lock = atomic_exchange((uint32_t*)mutex, MUTEX_LOCKED_CONTENDED);
-        if (lock != MUTEX_UNLOCKED) {
-            __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED, NULL);
+        if (lock == MUTEX_UNLOCKED) {
+            break;
         }
+        __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED, NULL);
     }
     return 0;
 #endif

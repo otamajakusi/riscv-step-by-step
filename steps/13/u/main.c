@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "thread.h"
 
-#define THREAD_NUM  (2)
+#define THREAD_NUM  (5)
 
 typedef struct {
     thread_mutex_t *mutex;
