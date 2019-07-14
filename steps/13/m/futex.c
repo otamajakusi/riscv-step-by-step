@@ -49,7 +49,7 @@ static int handle_futex_wake_exp(int uaddr, int val, int val2, task_t* curr)
             w->regs[REG_CTX_A1] == (uintptr_t)uaddr) {
             task_dequeue_from_root(&queue, w);
             // printf("%p wake by task %p\n", w, curr);
-            w->state = task_state_ready;
+            ready_task(w);
             num ++;
         }
         w = w->next;
@@ -90,7 +90,7 @@ static int handle_futex_wake(int uaddr, int val, task_t* curr)
             w->regs[REG_CTX_A1] == (uintptr_t)uaddr) {
             task_dequeue_from_root(&queue, w);
             // printf("%p wake by task %p\n", w, curr);
-            w->state = task_state_ready;
+            ready_task(w);
             num ++;
         }
         w = w->next;
@@ -121,4 +121,17 @@ void handle_futex(uintptr_t* regs, task_t* curr)
         regs[REG_CTX_A0] = -ENOSYS;
         return;
     }
+}
+
+void dump_futex_queue()
+{
+    printf("dump futex queue\n");
+    if (queue == NULL) {
+        return;
+    }
+    task_t *w = queue;
+    do {
+        printf("w %p(%x)\n", w, w->regs[REG_CTX_A1]);
+        w = w->next;
+    } while (w != queue);
 }

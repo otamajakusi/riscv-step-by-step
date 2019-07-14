@@ -98,8 +98,11 @@ int thread_mutex_lock(thread_mutex_t *mutex)
     if (thread_mutex_trylock(mutex) == 0) {
         return 0;
     }
-    while (atomic_exchange((uint32_t*)mutex, MUTEX_LOCKED_CONTENDED) != MUTEX_UNLOCKED) {
-        __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED, NULL);
+    while (1) {
+        int lock = atomic_exchange((uint32_t*)mutex, MUTEX_LOCKED_CONTENDED);
+        if (lock != MUTEX_UNLOCKED) {
+            __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED, NULL);
+        }
     }
     return 0;
 #endif
@@ -111,7 +114,6 @@ int thread_mutex_trylock(thread_mutex_t *mutex)
     (void)mutex;
     return -EAGAIN;
 #else
-    // returns if *mutex == UNLOCKED
     if (atomic_compare_exchange((uint32_t*)mutex, MUTEX_UNLOCKED, MUTEX_LOCKED_UNCONTENDED)) {
         return 0;
     }
@@ -124,8 +126,10 @@ int thread_mutex_unlock(thread_mutex_t *mutex)
 #if MUTEX_EXPERIMENTAL == 1
     return __futex(mutex, FUTEX_WAKE_EXP, 1, MUTEX_UNLOCKED);
 #else
-    if (atomic_exchange((uint32_t*)mutex, MUTEX_UNLOCKED) == MUTEX_LOCKED_CONTENDED) {
-        __futex(mutex, FUTEX_WAKE, 1, NULL);
+    uint32_t ret = atomic_exchange((uint32_t*)mutex, MUTEX_UNLOCKED);
+    if (ret == MUTEX_LOCKED_CONTENDED) {
+        int n = __futex(mutex, FUTEX_WAKE, 1, NULL);
+        (void)n;
     }
     return 0;
 #endif

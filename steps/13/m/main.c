@@ -90,12 +90,16 @@ static void handle_intr(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
          */
         uint32_t irq = plic_claim();
         int c;
+        extern void dump_futex_queue();
+        extern void dump_sched_queue();
         while ((c = getchar()) != -1) {
             if (receive_read_data(c) < 0) {
                 if (c == 3) {
                     puts("\n^C..exit");
                     exit(2);
                 }
+                dump_futex_queue();
+                dump_sched_queue();
             }
         }
         plic_complete(irq);

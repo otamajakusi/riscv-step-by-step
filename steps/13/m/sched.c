@@ -74,6 +74,7 @@ int clone_current_task(uintptr_t fn, uintptr_t stack, uintptr_t arg)
             p->regs[REG_CTX_SP]= stack;
             p->regs[REG_CTX_A0]= arg;
             p->state = task_state_ready;
+            printf("cloned %p from %p\n", p, curr);
             return i;
         }
     }
@@ -186,4 +187,14 @@ void start_schedule()
     write_csr(mepc, curr->entry);
     write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11) | MSTATUS_MPIE);
     mret();
+}
+
+void dump_sched_queue()
+{
+    printf("dump sched queue\n");
+    for (size_t i = 0; i < USER_NUM_MAX; i ++) {
+        if (task[i].state != task_state_created) {
+            printf("%p state %d\n", &task[i], task[i].state);
+        }
+    }
 }
