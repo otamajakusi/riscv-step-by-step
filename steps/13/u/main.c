@@ -35,6 +35,8 @@ static void *thread_entry(void *arg)
 int main()
 {
     printf("Hello RISC-V U-Mode from ELF.\n");
+    extern void atomic_test();
+    atomic_test();
     thread_arg_t thread_arg[THREAD_NUM];
     thread_t thread[THREAD_NUM];
     thread_attr_t thread_attr[THREAD_NUM];
