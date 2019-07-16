@@ -47,9 +47,12 @@ task state: created, ready, running and terminated.
 task state: blocked.
 
 ### [Step 12](steps/12/README.md)
-thread, mutex, condition variable. futex!
+thread
 
 ### [Step 13](steps/13/README.md)
+mutex, condition variable with atomic operation and futex
+
+### [Step 14](steps/14/README.md)
 security (NX, SSP, ASLR, execute-only, SMEP/SMAP)
 
 ## References

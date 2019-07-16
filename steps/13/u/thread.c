@@ -2,6 +2,7 @@
 #include "syscall.h"
 #include <string.h>
 #include <stdio.h>
+#include <limits.h>
 #include "atomic.h"
 
 #define MUTEX_EXPERIMENTAL          0
@@ -151,20 +152,24 @@ int thread_cond_destroy(thread_cond_t *cond)
 
 int thread_cond_wait(thread_cond_t *cond, thread_mutex_t *mutex)
 {
-    (void)cond;
-    (void)mutex;
+    uint32_t old = atomic_load_relaxed((uint32_t*)cond);
+    thread_mutex_unlock(mutex);
+    __futex(cond, FUTEX_WAIT, old, NULL);
+    thread_mutex_lock(mutex);
     return 0;
 }
 
 int thread_cond_signal(thread_cond_t *cond)
 {
-    (void)cond;
+    atomic_fetch_add_relaxed((uint32_t*)cond, 1);
+    __futex(cond, FUTEX_WAKE, 1, NULL);
     return 0;
 }
 
 int thread_cond_broadcast(thread_cond_t *cond)
 {
-    (void)cond;
+    atomic_fetch_add_relaxed((uint32_t*)cond, 1);
+    __futex(cond, FUTEX_WAKE, INT_MAX, NULL);
     return 0;
 }
 
