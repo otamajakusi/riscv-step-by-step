@@ -1,4 +1,4 @@
-srcs  = crt.S setup.c plic.c main.c elfldr.c syscall.c vm.c sched.c read.c task.c futex.c
+srcs  = crt.S setup.c plic.c main.c elfldr.c syscall.c vm.c sched.c read.c task.c futex.c debug.c
 target = m.elf
 objs = u.elf.o
 include ../../../mk/common.mk
