@@ -8,6 +8,7 @@
 #define SYSCALL_CLONE   33
 #define SYSCALL_WAITPID 34
 #define SYSCALL_FUTEX   35
+#define SYSCALL_TEST    127
 
 #define FUTEX_WAIT      0
 #define FUTEX_WAKE      1
@@ -77,4 +78,11 @@ static inline int __futex(int *uaddr, int futex_op, int val, int val2) {
     return __SYSCALL4(SYSCALL_FUTEX, uaddr, futex_op, val, val2);
 }
 
+static inline void __test(int code, int val) {
+#if 0
+    __SYSCALL2(SYSCALL_TEST, code, val);
+#else
+    (void)code; (void)val;
+#endif
+}
 #endif

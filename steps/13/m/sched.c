@@ -4,6 +4,7 @@
 #include "sched.h"
 #include "task.h"
 #include "consts.h"
+#include "../u/syscall.h"
 
 static task_t task[USER_NUM_MAX];
 static int curr_task_num = 0;
@@ -154,9 +155,21 @@ void handle_waitpid(uintptr_t* regs, task_t* curr)
     block_current_task();
 }
 
+int task_num(const task_t *p)
+{
+    for (size_t i = 0; i < USER_NUM_MAX; i ++) {
+        if (&task[i] == p) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void schedule(uintptr_t* regs, uintptr_t mepc)
 {
     task_t *curr = get_current_task();
+    //printf("curr (%d) %x(r5=%x) -> ",
+    //        curr_task_num, mepc, regs[REG_CTX_A5]);
     if (curr != NULL) { // curr is not idle
         // save context
         memcpy(curr->regs, regs, sizeof(curr->regs));
@@ -165,6 +178,7 @@ void schedule(uintptr_t* regs, uintptr_t mepc)
 
     // change curr
     curr = pickup_next_task();
+    //printf("next (%d) %x\n", curr_task_num, curr != NULL ? curr->mepc : (unsigned)-1);
 
     if (curr == NULL) {
         enter_idle();

@@ -27,8 +27,12 @@ uint32_t _atomic_load_relaxed(uint32_t *addr);
 static inline int atomic_compare_exchange(
         uint32_t *addr, uint32_t expected, uint32_t desired)
 {
+#if 0
     int ret = _atomic_compare_exchange(addr, expected, desired);
     return ret;
+#else
+    return __sync_bool_compare_and_swap(addr, expected, desired);
+#endif
 }
 
 /*
@@ -40,8 +44,12 @@ static inline int atomic_compare_exchange(
  */
 static inline uint32_t atomic_exchange(uint32_t *addr, uint32_t desired)
 {
+#if 0
     uint32_t ret = _atomic_exchange(addr, desired);
     return ret;
+#else
+    return __sync_lock_test_and_set(addr, desired);
+#endif
 }
 
 /*

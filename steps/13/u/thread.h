@@ -19,7 +19,10 @@ typedef struct {
     void *arg;
 } thread_t;
 
-typedef int thread_mutex_t;
+typedef struct {
+    int status;
+} thread_mutex_t;
+
 typedef int thread_cond_t;
 
 /* thread_attr */

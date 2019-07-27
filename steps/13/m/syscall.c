@@ -30,6 +30,7 @@ static void handle_clone(uintptr_t* regs, const task_t* curr)
             regs[REG_CTX_A3]);
 }
 
+extern int task_num(const task_t *p);
 void handle_syscall(uintptr_t* regs, uintptr_t mepc, task_t* curr)
 {
     switch (regs[REG_CTX_A0]) {
@@ -51,6 +52,11 @@ void handle_syscall(uintptr_t* regs, uintptr_t mepc, task_t* curr)
     case SYSCALL_FUTEX:
         handle_futex(regs, curr);
         return schedule(regs, mepc + 4);
+    case SYSCALL_TEST:
+        //printf("(%d) %s(=%d)\n", task_num(curr),
+        //        regs[REG_CTX_A1] == 0 ? "locked uncontended" : 
+        //        (regs[REG_CTX_A1] == 1 ? "locked contended" :"unlocked"), regs[REG_CTX_A2]);
+        break;
     default:
         break;
     }

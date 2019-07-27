@@ -92,19 +92,24 @@ int thread_mutex_lock(thread_mutex_t *mutex)
 #if MUTEX_EXPERIMENTAL == 1
     int ret;
     do {
-        ret = __futex(mutex, FUTEX_WAIT_EXP, MUTEX_UNLOCKED, MUTEX_LOCKED);
+        ret = __futex(&mutex->status, FUTEX_WAIT_EXP, MUTEX_UNLOCKED, MUTEX_LOCKED);
     } while (ret == -EAGAIN);
     return 0;
 #else
     if (thread_mutex_trylock(mutex) == 0) {
+        __test(0, 0);
+        if (mutex->status != MUTEX_LOCKED_UNCONTENDED) {
+            //printf("error: trylock %d\n", mutex->status);
+        }
         return 0;
     }
     while (1) {
-        int lock = atomic_exchange((uint32_t*)mutex, MUTEX_LOCKED_CONTENDED);
+        int lock = atomic_exchange((uint32_t*)&mutex->status, MUTEX_LOCKED_CONTENDED);
         if (lock == MUTEX_UNLOCKED) {
+            __test(1, 0);
             break;
         }
-        __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED, NULL);
+        __futex(&mutex->status, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED, NULL);
     }
     return 0;
 #endif
@@ -116,7 +121,8 @@ int thread_mutex_trylock(thread_mutex_t *mutex)
     (void)mutex;
     return -EAGAIN;
 #else
-    if (atomic_compare_exchange((uint32_t*)mutex, MUTEX_UNLOCKED, MUTEX_LOCKED_UNCONTENDED)) {
+    if (atomic_compare_exchange(
+        (uint32_t*)&mutex->status, MUTEX_UNLOCKED, MUTEX_LOCKED_UNCONTENDED)) {
         return 0;
     }
     return -EAGAIN;
@@ -126,11 +132,15 @@ int thread_mutex_trylock(thread_mutex_t *mutex)
 int thread_mutex_unlock(thread_mutex_t *mutex)
 {
 #if MUTEX_EXPERIMENTAL == 1
-    return __futex(mutex, FUTEX_WAKE_EXP, 1, MUTEX_UNLOCKED);
+    return __futex(&mutex->status, FUTEX_WAKE_EXP, 1, MUTEX_UNLOCKED);
 #else
-    uint32_t ret = atomic_exchange((uint32_t*)mutex, MUTEX_UNLOCKED);
+    uint32_t ret = atomic_exchange((uint32_t*)&mutex->status, MUTEX_UNLOCKED);
+    __test(2, ret);
+    if (ret == MUTEX_UNLOCKED) {
+        printf("illegal unlock??\n");
+    }
     if (ret == MUTEX_LOCKED_CONTENDED) {
-        int n = __futex(mutex, FUTEX_WAKE, 1, NULL);
+        int n = __futex(&mutex->status, FUTEX_WAKE, 1, NULL);
         (void)n;
     }
     return 0;

@@ -109,7 +109,8 @@ static void handle_intr(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
     if (mcause & (1u << 31)) {
-        return handle_intr(regs, mcause & ~(1u << 31), mepc);
+        handle_intr(regs, mcause & ~(1u << 31), mepc);
+        return;
     }
     if (mcause == cause_machine_ecall) {
         printf("ecall by machine mode at: %x\n", mepc);
