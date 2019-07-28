@@ -92,3 +92,9 @@ threadAがcompare_exchangeのsc.wで割り込みが発生し,
 threadBがcompare_exchangeに成功し,
 threadAをsc.wから復帰させるとなぜか, sc.w が成功する.
 threadはuser mode, 復帰はmachine modeが行う.
+
+// 確認:
+sw.wから復帰させる際に, mutex lockを別のthreadが獲得しているのを確認して
+次の命令をillegalにして, registerをダンプする.
+-> sc.w に成功している場合と失敗している場合の両方があった.
+-> sc.w でinterruptの場合即座に復帰させる.

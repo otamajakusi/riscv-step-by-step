@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "futex.h"
 #include "sched.h"
+#include "debug.h"
 #include "../u/syscall.h"
 
 static struct task_t* queue = NULL;
@@ -73,7 +74,7 @@ static int handle_futex_wait(int uaddr, int val, task_t* curr)
     if (act != (uint32_t)val) {
         return -EAGAIN;
     }
-    //printf("(%d) sleeping..\n", task_num(curr));
+    mem_printf("(%d) sleeping..\n", task_num(curr));
     task_enqueue_to_root(&queue, curr);
     block_current_task();
     return 0;
@@ -92,7 +93,7 @@ static int handle_futex_wake(int uaddr, int val, task_t* curr)
         if (w->state == task_state_blocked &&
             w->regs[REG_CTX_A1] == (uintptr_t)uaddr) {
             task_dequeue_from_root(&queue, w);
-            //printf("(%d) woke-up by (%d)\n", task_num(w), task_num(curr));
+            mem_printf("(%d) woke-up by (%d)\n", task_num(w), task_num(curr));
             ready_task(w);
             num ++;
         }

@@ -4,6 +4,7 @@
 #include "sched.h"
 #include "task.h"
 #include "consts.h"
+#include "debug.h"
 #include "../u/syscall.h"
 
 static task_t task[USER_NUM_MAX];
@@ -165,11 +166,43 @@ int task_num(const task_t *p)
     return -1;
 }
 
+int has_error = 0;
+
+int task_test_range(uintptr_t start, uintptr_t end, const task_t *except)
+{
+    for (size_t i = 0; i < USER_NUM_MAX; i ++) {
+        if (&task[i] != except &&
+            (task[i].state == task_state_ready ||
+             task[i].state == task_state_running ||
+             task[i].state == task_state_blocked) &&
+            (task[i].mepc >= start && task[i].mepc <= end)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void task_check_range(uintptr_t start, uintptr_t end, const task_t *except, uintptr_t mepc)
+{
+    for (size_t i = 0; i < USER_NUM_MAX; i ++) {
+        if (&task[i] != except &&
+            (task[i].state == task_state_ready ||
+             task[i].state == task_state_running ||
+             task[i].state == task_state_blocked) &&
+            (task[i].mepc >= start && task[i].mepc <= end)) {
+            mem_printf("(%d) is in %x, except (%d), %x\n",
+                     i, task[i].mepc, task_num(except), mepc);
+            has_error = 1;
+            return;
+        }
+    }
+}
+
 void schedule(uintptr_t* regs, uintptr_t mepc)
 {
     task_t *curr = get_current_task();
-    //printf("curr (%d) %x(r5=%x) -> ",
-    //        curr_task_num, mepc, regs[REG_CTX_A5]);
+    mem_printf("curr (%d) %x(a5=%x, a0=%x) -> ",
+            curr_task_num, mepc, regs[REG_CTX_A5], regs[REG_CTX_A0]);
     if (curr != NULL) { // curr is not idle
         // save context
         memcpy(curr->regs, regs, sizeof(curr->regs));
@@ -178,7 +211,22 @@ void schedule(uintptr_t* regs, uintptr_t mepc)
 
     // change curr
     curr = pickup_next_task();
-    //printf("next (%d) %x\n", curr_task_num, curr != NULL ? curr->mepc : (unsigned)-1);
+    mem_printf("next (%d) %x\n", curr_task_num, curr != NULL ? curr->mepc : (unsigned)-1);
+
+    if (curr->mepc == 0x282) {
+        int check;
+        check  = task_test_range(0x318, 0x32e, curr);
+        check |= task_test_range(0x2c6, 0x2cc, curr);
+        if (check) {
+            store_32_to_user(curr, curr->mepc + 4, 0xffffffff);
+            asm volatile("fence.i");
+        }
+    }
+
+    if (has_error) {
+        mem_flush();
+        exit(1);
+    }
 
     if (curr == NULL) {
         enter_idle();

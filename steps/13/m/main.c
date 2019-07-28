@@ -13,6 +13,7 @@
 #include "read.h"
 #include "utils.h"
 #include "plic.h"
+#include "debug.h"
 
 /* See riscv-qemu/include/hw/riscv/sifive_clint.h */
 #define SIFIVE_CLINT_TIMEBASE_FREQ  10000000
@@ -47,7 +48,7 @@ static int handle_page_fault(uintptr_t mcause, uintptr_t mepc)
 {
     uint32_t mpp = (read_csr(mstatus) & MSTATUS_MPP) >> 11;
     if (mpp != PRV_U) {
-        printf("page fault at MPP != U\n");
+        printf("page fault at MPP != U %ld\n", mpp);
         return -1;
     }
     int read = 0;
@@ -106,8 +107,21 @@ static void handle_intr(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     }
 }
 
+extern void task_check_range(uintptr_t start, uintptr_t end, const task_t *except, uintptr_t mepc);
+extern int task_num(const task_t *p);
 static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
+    mem_printf("(%d): mepc %x, %s\n", 
+            task_num(get_current_task_safe()), 
+            mepc,
+            (mcause & (1u << 31)) ?
+                riscv_intr_names[(mcause & ~(1u << 31))] :
+                riscv_excp_names[(mcause)]);
+    if((mepc >= 0x318 && mepc <= 0x32e) ||
+        (mepc >= 0x2c6 && mepc <= 0x2cc)) {
+        task_check_range(0x318, 0x32e, get_current_task_safe(), mepc);
+        task_check_range(0x2c6, 0x2cc, get_current_task_safe(), mepc);
+    }
     if (mcause & (1u << 31)) {
         handle_intr(regs, mcause & ~(1u << 31), mepc);
         return;
@@ -123,12 +137,23 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
         if (handle_page_fault(mcause, mepc) == 0) {
             return;
         } else {
-            printf("unintended page fault: %x, %x, %lx\n",
-                    mcause, mepc, read_csr(mstatus) & MSTATUS_MPP);
+            printf("unintended page fault: %x, %x, %lx ra %x\n",
+                    mcause, mepc, read_csr(mstatus) & MSTATUS_MPP, regs[REG_CTX_RA]);
+            printf("a5 %x, a4 %x, s0 %x\n", 
+                    regs[REG_CTX_A5],
+                    regs[REG_CTX_A4],
+                    regs[REG_CTX_S0]);
+
         }
     } else {
+        mem_flush();
         printf("unknown exception or interrupt: %x, %x, %lx\n",
                 mcause, mepc, read_csr(mstatus) & MSTATUS_MPP);
+            printf("a5 %x, a4 %x, a3 %x, s0 %x\n", 
+                    regs[REG_CTX_A5],
+                    regs[REG_CTX_A4],
+                    regs[REG_CTX_A3],
+                    regs[REG_CTX_S0]);
     }
     exit(0);
 }

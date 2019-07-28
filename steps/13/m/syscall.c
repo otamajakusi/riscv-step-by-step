@@ -12,6 +12,7 @@
 #include "read.h"
 #include "task.h"
 #include "futex.h"
+#include "debug.h"
 
 static void handle_write(uintptr_t* regs, const task_t* curr)
 {
@@ -33,6 +34,8 @@ static void handle_clone(uintptr_t* regs, const task_t* curr)
 extern int task_num(const task_t *p);
 void handle_syscall(uintptr_t* regs, uintptr_t mepc, task_t* curr)
 {
+    mem_printf("(%d) sc #%d, %x, %x\n", 
+            task_num(curr), regs[REG_CTX_A0], regs[REG_CTX_A1], regs[REG_CTX_A2]);
     switch (regs[REG_CTX_A0]) {
     case SYSCALL_READ:
         handle_read(regs, curr);
