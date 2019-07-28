@@ -1,0 +1,94 @@
+// trylock中にtimer割り込み(a5==0なのでlock獲得)
+(1): mepc 00000288, m_timer
+curr (1) 00000288(a5=00000000, a0=0000114c) -> next (2) 00000050
+
+// (2) futex_wait
+(2): mepc 0000004c, user_ecall
+(2) sc #35, 0000114c, 00000000
+(2) sleeping..
+curr (2) 00000050(a5=00000001, a0=00000000) -> next (3) 00000050
+
+// (3) futex_wait
+(3): mepc 0000004c, user_ecall
+(3) sc #35, 0000114c, 00000000
+(3) sleeping..
+curr (3) 00000050(a5=00000002, a0=00000000) -> next (4) 00000050
+
+// (4) futex_wait
+(4): mepc 0000004c, user_ecall
+(4) sc #35, 0000114c, 00000000
+(4) sleeping..
+curr (4) 00000050(a5=00000002, a0=00000000) -> next (1) 00000288
+
+// (1)はこの間(これ以前にlocked) -> unlocked -> wake
+
+// (1) futex_wake -> (2)が起きる
+(1): mepc 0000004c, user_ecall
+(1) sc #35, 0000114c, 00000001
+(2) woke-up by (1)
+curr (1) 00000050(a5=00000002, a0=00000001) -> next (2) 00000050
+
+// (2)はこの間 locked -> unlocked -> wake(3)
+
+// (2) futex_wake
+(2): mepc 0000004c, user_ecall
+(2) sc #35, 0000114c, 00000001
+(3) woke-up by (2)
+curr (2) 00000050(a5=00000002, a0=00000001) -> next (3) 00000050
+
+// (3)はこの間 locked -> unlocked -> wake(4)
+
+// (3) futex wake
+(3): mepc 0000004c, user_ecall
+(3) sc #35, 0000114c, 00000001
+(4) woke-up by (3)
+curr (3) 00000050(a5=00000002, a0=00000001) -> next (4) 00000050
+
+// (4)はこの間 locked -> unlocked -> wake(none)
+
+// (4) futex wake
+(4): mepc 0000004c, user_ecall
+(4) sc #35, 0000114c, 00000001
+curr (4) 00000050(a5=00000002, a0=00000000) -> next (1) 00000050 (<-(1)futex_wakeからの復帰)
+
+// (1) unlock後(unlock関数内)にtimer割り込み
+(1): mepc 000002e4, m_timer
+curr (1) 000002e4(a5=00000001, a0=0000114c) -> next (2) 00000050
+
+// ここではまだ誰もlockを持っていない
+// (1)はunlockした後yield,
+// (2)はsc.wでyield (次↓)
+
+// (2) sc.w でtimer割り込み
+(2): mepc 00000282, m_timer
+curr (2) 00000282(a5=00000000, a0=0000114c) -> next (3) 00000050
+
+// (3) lock獲得中timer割り込み
+(3): mepc 00000318, m_timer
+curr (3) 00000318(a5=00000000, a0=00000000) -> next (4) 00000050
+
+// (4) futex wait
+(4): mepc 0000004c, user_ecall
+(4) sc #35, 0000114c, 00000000
+(4) sleeping..
+curr (4) 00000050(a5=00000001, a0=00000000) -> next (1) 000002e4
+
+// (1) futex wait
+(1): mepc 0000004c, user_ecall
+(1) sc #35, 0000114c, 00000000
+(1) sleeping..
+curr (1) 00000050(a5=00000002, a0=00000000) -> next (2) 00000282
+
+// (2) mutex_unlock 呼び出し中に timer割り込み 
+// (3)がlock獲得中にも関わらずsc.w -> thread_mutex_unlockに到達している.
+// 本来は (2) sleepingにならないとおかしい.
+(2): mepc 000002c6, m_timer
+(3) is in 00000318, except (2), 000002c6
+curr (2) 000002c6(a5=00027f6c, a0=0000114c) -> next (3) 00000318
+
+
+// 現象:
+threadAがcompare_exchangeのsc.wで割り込みが発生し,
+threadBがcompare_exchangeに成功し,
+threadAをsc.wから復帰させるとなぜか, sc.w が成功する.
+threadはuser mode, 復帰はmachine modeが行う.
