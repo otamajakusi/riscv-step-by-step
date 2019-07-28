@@ -77,3 +77,5 @@ https://sifive.cdn.prismic.io/sifive%2F4d063bf8-3ae6-4db6-9843-ee9076ebadf7_fe31
 ### riscv-qemu wiki
 https://github.com/riscv/riscv-qemu/wiki
 
+### riscv-qemu change log
+https://wiki.qemu.org/ChangeLog
