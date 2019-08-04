@@ -42,8 +42,7 @@ qemuもRV32のみを使用するため, 32-bitのビルドのみとします.
 cd where/to/repos
 git clone -n https://github.com/riscv/riscv-qemu.git
 cd riscv-qemu
-git checkout 13c24edaa742181af8d9c6b027ee366b04de1ea1
-# see https://github.com/riscv/riscv-qemu/wiki
+git checkout riscv-qemu-3.1
 mkdir build
 cd build
 ../configure --target-list=riscv32-softmmu --prefix=/opt/qemu

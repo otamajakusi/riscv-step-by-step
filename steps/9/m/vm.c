@@ -79,14 +79,14 @@ uint64_t va_to_pa(const union sv32_pte* ptes1st, uintptr_t va, int validate)
     uint32_t va_vpn1 = (va >> (12 + 10)) & 0x3ff;
     const union sv32_pte* pte1st = &ptes1st[va_vpn1];
     if (pte1st->val == 0) {
-        printf("error: illegal va_vpn1: %x\n", va_vpn1);
+        printf("error: illegal va_vpn1: %lx\n", va_vpn1);
         return -1ull;
     }
     union sv32_pte* ptes2nd
         = (union sv32_pte*)(pte1st->pte.ppn << RISCV_PGSHIFT);
     union sv32_pte* pte2nd = &ptes2nd[va_vpn0];
     if (pte2nd->val == 0) {
-        printf("error: illegal va_vpn0: %x\n", va_vpn0);
+        printf("error: illegal va_vpn0: %lx\n", va_vpn0);
         return -1ull;
     }
     if (validate) {
