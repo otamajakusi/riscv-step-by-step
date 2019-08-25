@@ -20,8 +20,7 @@ const Elf32_Phdr* get_phdr_from_va(
 
 int load_program_segment(
         const Elf32_Ehdr* ehdr, const Elf32_Phdr* phdr,
-        uint32_t va, const union sv32_pte* ptes1st,
-        int validate_page);
+        uint32_t va, const union sv32_pte* ptes1st);
 
 #ifdef __cplusplus
 }

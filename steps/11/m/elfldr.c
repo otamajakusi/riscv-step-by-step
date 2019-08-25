@@ -151,15 +151,14 @@ const Elf32_Phdr* get_phdr_from_va(
 // load page data from program segment located at va.
 int load_program_segment(
         const Elf32_Ehdr* ehdr, const Elf32_Phdr* phdr,
-        uint32_t va, const union sv32_pte* ptes1st,
-        int validate_page)
+        uint32_t va, const union sv32_pte* ptes1st)
 {
     uint32_t va_page_aligned = va & ~(PAGE_SIZE - 1);
     uint32_t va_page_offset = (va - va_page_aligned) & ~(PAGE_SIZE - 1);
     uint32_t size = phdr->p_filesz - va_page_offset;
     size = size > PAGE_SIZE ? PAGE_SIZE : size;
     const void* from = (const char*)ehdr + phdr->p_offset + va_page_offset;
-    uint64_t pa = va_to_pa(ptes1st, va, validate_page);
+    uint64_t pa = va_to_pa(ptes1st, va, 1);
     if (pa == -1ull) {
         printf("error: va %lx\n", va);
         return -1;

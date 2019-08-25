@@ -69,7 +69,7 @@ static int handle_page_fault(uintptr_t mcause, uintptr_t mepc)
         printf("error: illegal page fault %d. pc %x, va %x\n", mcause, mepc, addr);
         return -1;
     }
-    load_program_segment(curr->ehdr, phdr, addr, curr->pte, 1);
+    load_program_segment(curr->ehdr, phdr, addr, curr->pte);
     return 0;
 }
 
