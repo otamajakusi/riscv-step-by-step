@@ -177,7 +177,6 @@ void schedule(uintptr_t* regs, uintptr_t mepc)
         enter_idle();
     } else {
         // restore context
-        // FIXME: PRV_U should be set if `curr` is use mode.
         write_csr(mstatus, (read_csr(mstatus) & ~MSTATUS_MPP) | (PRV_U << 11));
         memcpy(regs, curr->regs, sizeof(curr->regs));
         write_csr(mepc, curr->mepc);
