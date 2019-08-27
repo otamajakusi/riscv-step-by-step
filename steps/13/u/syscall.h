@@ -11,8 +11,6 @@
 
 #define FUTEX_WAIT      0
 #define FUTEX_WAKE      1
-#define FUTEX_WAIT_EXP  0x80 // for experimental
-#define FUTEX_WAKE_EXP  0x81 // for experimental
 
 // error
 #define EAGAIN          11
@@ -59,14 +57,6 @@ static inline int __waitpid(int pid, int *wstatus) {
 
 /* Note: No timeout and val3 for this environment. */
 /* 
- * FUTEX_WAIT_EXP and FUTEX_WAKE_EXP are experimental operations.
- * FUTEX_WAIT_EXP:
- *   compares if *uaddr is equal to val then store val2 to *uaddr and return 0,
- *   otherwise sleeps waiting for a FUTEX_WAKE_EXP and returns -EAGAIN.
- * FUTEX_WAKE_EXP:
- *   store val2 to *uaddr and wakes at most val of the waiters waiting on the
- *   uaddr.
- *
  * FUTEX_WAIT:
  *   compares if *uaddr is equal to val then sleeps waiting for a FUTEX_WAKE.
  *   otherwise returns -EAGAIN.

@@ -5,15 +5,9 @@
 #include <limits.h>
 #include "atomic.h"
 
-#define MUTEX_EXPERIMENTAL          0
-
 #define MUTEX_UNLOCKED              (0)
-#if MUTEX_EXPERIMENTAL == 1
-#define MUTEX_LOCKED                (1)
-#else
 #define MUTEX_LOCKED_UNCONTENDED    (1)
 #define MUTEX_LOCKED_CONTENDED      (2)
-#endif
 
 typedef struct {
    void *(*start_routine) (void *);
@@ -89,13 +83,6 @@ int thread_mutex_destroy(thread_mutex_t *mutex)
 
 int thread_mutex_lock(thread_mutex_t *mutex)
 {
-#if MUTEX_EXPERIMENTAL == 1
-    int ret;
-    do {
-        ret = __futex(mutex, FUTEX_WAIT_EXP, MUTEX_UNLOCKED, MUTEX_LOCKED);
-    } while (ret == -EAGAIN);
-    return 0;
-#else
     if (thread_mutex_trylock(mutex) == 0) {
         return 0;
     }
@@ -107,34 +94,24 @@ int thread_mutex_lock(thread_mutex_t *mutex)
         __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED, NULL);
     }
     return 0;
-#endif
 }
 
 int thread_mutex_trylock(thread_mutex_t *mutex)
 {
-#if MUTEX_EXPERIMENTAL == 1
-    (void)mutex;
-    return -EAGAIN;
-#else
     if (atomic_compare_exchange((uint32_t*)mutex, MUTEX_UNLOCKED, MUTEX_LOCKED_UNCONTENDED)) {
         return 0;
     }
     return -EAGAIN;
-#endif
 }
 
 int thread_mutex_unlock(thread_mutex_t *mutex)
 {
-#if MUTEX_EXPERIMENTAL == 1
-    return __futex(mutex, FUTEX_WAKE_EXP, 1, MUTEX_UNLOCKED);
-#else
     uint32_t ret = atomic_exchange((uint32_t*)mutex, MUTEX_UNLOCKED);
     if (ret == MUTEX_LOCKED_CONTENDED) {
         int n = __futex(mutex, FUTEX_WAKE, 1, NULL);
         (void)n;
     }
     return 0;
-#endif
 }
 
 /* cond: Note: Compare to linux, we don't have attr param. */
