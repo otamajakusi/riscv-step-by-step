@@ -58,7 +58,7 @@ trap_vector:
     sw      x31, REG_CTX_RA*4(x1)
 
     # Invoke the handler.
-    la      sp, trap_stack_bottom
+    la      sp, stack_bottom
     mv      a0, x1
     csrr    a1, mcause
     csrr    a2, mepc
@@ -107,6 +107,3 @@ stack:
 stack_bottom:
 trap_context:
     .skip 4 * 32
-trap_stack:
-    .skip STACK_SIZE
-trap_stack_bottom:
