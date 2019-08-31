@@ -91,7 +91,7 @@ int thread_mutex_lock(thread_mutex_t *mutex)
         if (lock == MUTEX_UNLOCKED) {
             break;
         }
-        __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED, NULL);
+        __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED);
     }
     return 0;
 }
@@ -108,7 +108,7 @@ int thread_mutex_unlock(thread_mutex_t *mutex)
 {
     uint32_t ret = atomic_exchange((uint32_t*)mutex, MUTEX_UNLOCKED);
     if (ret == MUTEX_LOCKED_CONTENDED) {
-        int n = __futex(mutex, FUTEX_WAKE, 1, NULL);
+        int n = __futex(mutex, FUTEX_WAKE, 1);
         (void)n;
     }
     return 0;
@@ -131,7 +131,7 @@ int thread_cond_wait(thread_cond_t *cond, thread_mutex_t *mutex)
 {
     uint32_t old = atomic_load_relaxed((uint32_t*)cond);
     thread_mutex_unlock(mutex);
-    __futex(cond, FUTEX_WAIT, old, NULL);
+    __futex(cond, FUTEX_WAIT, old);
     thread_mutex_lock(mutex);
     return 0;
 }
@@ -139,14 +139,14 @@ int thread_cond_wait(thread_cond_t *cond, thread_mutex_t *mutex)
 int thread_cond_signal(thread_cond_t *cond)
 {
     atomic_fetch_add_relaxed((uint32_t*)cond, 1);
-    __futex(cond, FUTEX_WAKE, 1, NULL);
+    __futex(cond, FUTEX_WAKE, 1);
     return 0;
 }
 
 int thread_cond_broadcast(thread_cond_t *cond)
 {
     atomic_fetch_add_relaxed((uint32_t*)cond, 1);
-    __futex(cond, FUTEX_WAKE, INT_MAX, NULL);
+    __futex(cond, FUTEX_WAKE, INT_MAX);
     return 0;
 }
 

@@ -63,8 +63,8 @@ static inline int __waitpid(int pid, int *wstatus) {
  * FUTEX_WAKE:
  *   wakes at most val of the waiters waiting on the uaddr.
  */
-static inline int __futex(int *uaddr, int futex_op, int val, int val2) {
-    return __SYSCALL4(SYSCALL_FUTEX, uaddr, futex_op, val, val2);
+static inline int __futex(int *uaddr, int futex_op, int val) {
+    return __SYSCALL3(SYSCALL_FUTEX, uaddr, futex_op, val);
 }
 
 #endif
