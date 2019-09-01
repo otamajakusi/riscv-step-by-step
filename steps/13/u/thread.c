@@ -2,12 +2,6 @@
 #include "syscall.h"
 #include <string.h>
 #include <stdio.h>
-#include <limits.h>
-#include "atomic.h"
-
-#define MUTEX_UNLOCKED              (0)
-#define MUTEX_LOCKED_UNCONTENDED    (1)
-#define MUTEX_LOCKED_CONTENDED      (2)
 
 typedef struct {
    void *(*start_routine) (void *);
@@ -67,86 +61,3 @@ void thread_exit(void *retval)
 {
     __exit(*(int*)retval);
 }
-
-/* mutex: Note: Compare to linux, we don't have attr param. */
-int thread_mutex_init(thread_mutex_t *mutex)
-{
-    memset(mutex, 0, sizeof(*mutex));
-    return 0;
-}
-
-int thread_mutex_destroy(thread_mutex_t *mutex)
-{
-    (void)mutex;
-    return 0;
-}
-
-int thread_mutex_lock(thread_mutex_t *mutex)
-{
-    if (thread_mutex_trylock(mutex) == 0) {
-        return 0;
-    }
-    while (1) {
-        int lock = atomic_exchange((uint32_t*)mutex, MUTEX_LOCKED_CONTENDED);
-        if (lock == MUTEX_UNLOCKED) {
-            break;
-        }
-        __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED);
-    }
-    return 0;
-}
-
-int thread_mutex_trylock(thread_mutex_t *mutex)
-{
-    if (atomic_compare_exchange((uint32_t*)mutex, MUTEX_UNLOCKED, MUTEX_LOCKED_UNCONTENDED)) {
-        return 0;
-    }
-    return -EAGAIN;
-}
-
-int thread_mutex_unlock(thread_mutex_t *mutex)
-{
-    uint32_t ret = atomic_exchange((uint32_t*)mutex, MUTEX_UNLOCKED);
-    if (ret == MUTEX_LOCKED_CONTENDED) {
-        int n = __futex(mutex, FUTEX_WAKE, 1);
-        (void)n;
-    }
-    return 0;
-}
-
-/* cond: Note: Compare to linux, we don't have attr param. */
-int thread_cond_init(thread_cond_t *cond)
-{
-    memset(cond, 0, sizeof(*cond));
-    return 0;
-}
-
-int thread_cond_destroy(thread_cond_t *cond)
-{
-    (void)cond;
-    return 0;
-}
-
-int thread_cond_wait(thread_cond_t *cond, thread_mutex_t *mutex)
-{
-    uint32_t old = atomic_load_relaxed((uint32_t*)cond);
-    thread_mutex_unlock(mutex);
-    __futex(cond, FUTEX_WAIT, old);
-    thread_mutex_lock(mutex);
-    return 0;
-}
-
-int thread_cond_signal(thread_cond_t *cond)
-{
-    atomic_fetch_add_relaxed((uint32_t*)cond, 1);
-    __futex(cond, FUTEX_WAKE, 1);
-    return 0;
-}
-
-int thread_cond_broadcast(thread_cond_t *cond)
-{
-    atomic_fetch_add_relaxed((uint32_t*)cond, 1);
-    __futex(cond, FUTEX_WAKE, INT_MAX);
-    return 0;
-}
-
