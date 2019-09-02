@@ -49,7 +49,7 @@ int main()
         int ret = thread_create(&thread[i], &thread_attr[i], thread_entry, &thread_arg[i]);
         printf("ret %d, thread id %d\n", ret, thread[i].id);
     }
-    for (int i = THREAD_NUM - 1; i >= 0; i --) { // by reverse order
+    for (int i = 0; i < THREAD_NUM; i ++) {
         int retval;
         thread_join(&thread[i], (void**)&retval);
         printf("joined %x(%d), thread id %d\n", retval, retval, thread[i].id);

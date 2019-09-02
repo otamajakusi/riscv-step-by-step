@@ -1,8 +1,15 @@
+#include "thread.h"
+#include "syscall.h"
+#include <string.h>
+#include <stdio.h>
+#include <limits.h>
+#include "atomic.h"
+
 /*
     +------------------+
     |                  |
     v       (1)        |(3)
-    UNLOCKED--+-->LOCKED_UNCONTENDED
+ UNLOCKED--+-->LOCKED_UNCONTENDED
     ^      |           |(4)
     |   (2)|           v
     |      +--->LOCKED_CONTENDED<---+
@@ -16,12 +23,6 @@
 (5) mutex_lock()    on LOCKED_CONTENDED state
 (6) mutex_unlock()  on LOCKED_CONTENDED state
 */
-#include "thread.h"
-#include "syscall.h"
-#include <string.h>
-#include <stdio.h>
-#include <limits.h>
-#include "atomic.h"
 
 #define MUTEX_UNLOCKED              (0)
 #define MUTEX_LOCKED_UNCONTENDED    (1)
@@ -48,8 +49,12 @@ int thread_mutex_lock(thread_mutex_t *mutex)
     while (1) {
         int lock = atomic_exchange((uint32_t*)mutex, MUTEX_LOCKED_CONTENDED);
         if (lock == MUTEX_UNLOCKED) {
-            break;
+            break; // (2)
         }
+#if 0 /* just state transition */
+        if (lock == MUTEX_LOCKED_UNCONTENDED) {} // (4)
+        if (lock == MUTEX_LOCKED_CONTENDED) {} // (5)
+#endif
         __futex(mutex, FUTEX_WAIT, MUTEX_LOCKED_CONTENDED);
     }
     return 0;
@@ -58,7 +63,7 @@ int thread_mutex_lock(thread_mutex_t *mutex)
 int thread_mutex_trylock(thread_mutex_t *mutex)
 {
     if (atomic_compare_exchange((uint32_t*)mutex, MUTEX_UNLOCKED, MUTEX_LOCKED_UNCONTENDED)) {
-        return 0;
+        return 0; // (1)
     }
     return -EAGAIN;
 }
@@ -66,11 +71,14 @@ int thread_mutex_trylock(thread_mutex_t *mutex)
 int thread_mutex_unlock(thread_mutex_t *mutex)
 {
     uint32_t ret = atomic_exchange((uint32_t*)mutex, MUTEX_UNLOCKED);
-    if (ret == MUTEX_LOCKED_CONTENDED) {
+    if (ret == MUTEX_LOCKED_CONTENDED) { // (6)
         int n = __futex(mutex, FUTEX_WAKE, 1);
         (void)n;
     }
+#if 0 /* just state transition */
+    else if (ret == MUTEX_LOCKED_UNCONTENDED) {} // (3)
+    else {} // illegal. only mutex owner can change the state to UNLOCKED.
+#endif
     return 0;
 }
-
 
