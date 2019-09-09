@@ -1,62 +1,51 @@
-# Step 10
-
-## task state: ready, running and terminated.
-このstepではuser modeプログラムのtaskの状態の管理をします.
-これまでのstepのtaskはずっと実行していたため特別に状態の管理を行う必要がありませんでした.
-状態の管理は意識してしていませんでしたが, ready 状態と running 状態を交互に繰り返していました.
+CREATED, READY, RUNNING AND TERMINATED - TASK STATE
+このステップではタスクの状態の管理をします.
+これまでのステップのタスクはずっと実行していたため状態を管理する必要がありませんでした. 状態の管理していなかったものの, タスクは ready 状態と running 状態を交互に繰り返していました.
 ```
   +-------+     +-------+
   |       |---->|       |
   | ready |     |running|
   |       |<----|       |
   +-------+     +-------+
+task state: read and running
 ```
-running状態はCPUを使用してプログラムを実行している状態, ready状態はいつでもrunning状態に遷移できる状態です.
-今回新たに terminated状態を導入します.
-terminated状態はプログラムが終了した状態でreadyやrunning状態には戻れません.
-exit syscallを発行したtaskの状態をterminated状態に遷移させます.
+running 状態はCPUを使用してプログラムを実行している状態, ready 状態はいつでもrunning状態に遷移できる状態です.
+今回新たに terminated 状態を導入します.
+terminated 状態はプログラムが終了した状態で ready や running 状態には戻れません.
+このステップでは exit syscall を発行したタスクの状態を terminated 状態に遷移させます.
 ```
   +-------+     +-------+
   |       |---->|       |
   | ready |     |running|
   |       |<----|       |
   +-------+     +-------+
-                    |
-                    |
-                    v
+                 |
+                 |
+                 v
                 +-------+
                 |       |
                 |termina|
                 |  ted  |
                 +-------+
+task state: ready, running and terminated
 ```
-terminated状態を導入すると, `terminated状態のtaskをready/running状態にしない` という仕組みが必要になります.
-ready状態のtaskがlinked listでつながっている場合はそのリストから単に切り離せばterminated状態を表現できそうですが, 現状taskはlinked listではなく配列で管理されているため単にtaskに状態を追加する実装にしようと思います.  
-さてterminated状態を導入するとidle task(=idle thread)というkernel内で実行される特別なtaskを導入する必要が出てきます.
-idle taskは他のすべてのtaskがrunning状態に遷移できない場合, とくにこのstepの場合すべてのtaskがterminated状態となる場合, に実行される特別なtaskで単に無限ループで実装される場合, あるいは(消費電力を小さくする目的などで)割り込みが起こるまで待つ命令を発行する場合があります.
-RISC-Vにも`wfi(=wait for interrupt)` という命令があります.
-なおidle taskはtaskと呼んでいますが単なる`wfi`命令なのでcontextのsave/restoreは不要です.
+terminated 状態を導入すると, "terminated 状態のタスクをを ready/running状態にしない" という処理が必要になります.
+ready 状態のタスクを連結リスト(=linked list)でつなぎ, そのリストから単に切り離すことで terminated 状態を表現できそうですが, 今回は差分を小さく, 分かりやすくするために, 単にタスク構造体に状態を追加する実装にします.
+```c
+typedef enum {
+    task_state_created = 0,
+    task_state_ready,
+    task_state_running,
+    task_state_blocked,
+    task_state_terminated,
+} task_state_t;
 
-### scheduler
-今回のstepからschedulerを導入します.
-schedulerはポリシーに従ってtaskを管理しrunning状態へ遷移させるtaskを決定します.
-schedulerのポリシーには, taskに優先度をつけ優先度が高いものからrunning状態にしたり, running状態のtaskは割り込まれないようにしたり, 一定の時間running状態が続いたら別のtaskをrunning状態にするものなど様々あります.
-今回導入するschedulerは 1. timer割り込みが発生したらready状態のtaskをrunning状態にする, 2. もしready状態のtaskがなければrunning状態のtaskをrunning状態のままにする, 3. ready, running状態のtaskがなければ idle taskを実行する, となります.
-優先度の管理やrunning状態の時間の管理もありません.
-
-### 変更点
-#### m/main.c
-taskのインスタンス `task[USER_NUM]` はsched.cに移動させ, taskはschedulerの管理とします.
-
-### m/sched.c
-start_schedule: schedulerを開始します.
-schedule: これまでswitch_taskとしてm/main.cで実装されていたものをm/sched.cに移動させ, 名前を変更しました.
-taskをswitchするかどうかはschedulerの責任です.
-今回からidle taskを導入し, idle taskのcontextはsave/restoreの対象ではないためget_current_taskの戻り値がidle taskである場合, pickup_next_taskの戻り値がidle taskである場合の処理を加えています. どちらもidle taskの場合NULLが返されます.
-create_task: これもこれまでm/main.cで行われていたものをm/sched.cに移動させたものです.
-idle: idle taskが実行する関数で`wfi`のループで実装されています.
-
-### wfiについて
-`The WFI instruction is just a hint, and a legal implementation is to implement WFI as a NOPP.` とある[^1](#1)ので, `wfi`は割り込みがあるまでstallするわけではないことに注意します.
-またmachine modeとsupervisor modeでwfiは有効ですが, MSTATUS.TW=1の場合, supervisor modeでのwfiが一定時間内に完了しない場合, wfiはillegal instruction例外を発生させるとあります.
-これはsupervisor modeが提供するguest OSが無駄な時間を消費しないようにするためです.
+typedef struct {
+    uintptr_t       entry;
+...
+    uintptr_t       mepc;
+    task_state_t    state;
+} task_t;
+```
+さて terminated 状態を導入するとアイドルタスク(=アイドルスレッドとも呼ばれる)と呼ばれるkernel内で実行される特別なタスクを導入する必要が出てきます. アイドルタスクは他のすべてのタスクが running 状態に遷移できない場合 - 特にこのステップの場合すべてのタスクが terminated 状態となる場合 - に実行される特別なタスクで単に無限ループで実装される場合, あるいは(消費電力を小さくする目的などで)割り込みが起こるまで待つ命令を発行する場合があります. RISC-Vにも wfi(=wait for interrupt) という命令があります.
+なおアイドルタスクは "タスク" と呼んでいますが単なる wfi 命令なのでタスクの退避/復帰処理は不要です.
