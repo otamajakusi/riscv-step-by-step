@@ -12,6 +12,8 @@ INCLUDE = -I$(MAKEFILE_DIR)../riscv-probe/libfemto/include
 
 objs += $(patsubst %S,%o,$(filter %.S,$(srcs)))
 objs += $(patsubst %c,%o,$(filter %.c,$(srcs)))
+deps  = $(patsubst %c,%d,$(filter %.c,$(srcs)))
+deps += $(patsubst %S,%d,$(filter %.S,$(srcs)))
 
 .PHONY: all
 all: $(objs) $(target)
@@ -23,7 +25,9 @@ $(target): $(objs)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 %.o : %.c
-	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $<
+	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $< -MMD -MP
+
+-include $(deps)
 
 .PHONY: clean
 clean:
