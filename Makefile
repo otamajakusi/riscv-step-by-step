@@ -1,2 +1,2 @@
-subdirs = src
+subdirs = steps
 include mk/subdirs.mk
