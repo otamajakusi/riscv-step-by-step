@@ -110,7 +110,8 @@ int main()
     for (size_t i = 0; i < USER_NUM; i ++) {
         uint32_t pa = USER_PA + USER_PA_OFFSET * i;
         const void* entry = load_elf((void*)&u_elf_start, pa);
-        setup_pmp(pa, 0x2000);
+        setup_pmp(pa,          0x1000);
+        setup_pmp(pa + 0x1000, 0x1000);
         init_pte(ptes1st[i], ptes2nd[i]);
         // FIXME: user va and size should be obtained from elf file.
         setup_pte(ptes1st[i], 0x0000, pa,          0x1000, 1, 0, 1);
