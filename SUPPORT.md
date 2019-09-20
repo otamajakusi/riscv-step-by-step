@@ -13,7 +13,7 @@ PMP(=Physical Memory Protection) の実装は完全でないことが分かり�
 https://github.com/otamajakusi/riscv-step-by-step/issues/6
 
 ### 正誤情報
-1. 50ページ setup_pmp. size に 2 のべき乗を渡します.
+1. 50ページ setup_pmp. size に 2 のべき乗を渡します.  
    誤)
    ```
    setup_pmp(pa, 0x2000);
