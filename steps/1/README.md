@@ -12,6 +12,21 @@ riscv-step-by-step, riscv-gnu-toolchain, binutils,
 riscv-qemuそしてriscv-probeの順にセットアップします.
 なおセットアップ先のディレクトリは /path/to/dir とします.
 
+Macで実行する場合, docker 環境上での実行を推奨します.
+```bash
+$ docker pull ubuntu:18.04
+$ docker run -it ubuntu:18.04
+```
+
+### 事前準備
+apt-get が使用できる環境では事前に以下のコマンドで必要なツールをインストールします. その他環境では以下に相当するツールを事前にインストールします.
+
+```bash
+$ sudo apt-get update
+$ sudo apt-get install -y wget unzip git
+$ sudo apt-get install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
+```
+
 ### riscv-step-by-stepセットアップ
 ```bash
 $ cd /path/to/dir
@@ -25,7 +40,7 @@ $ cd /path/to/dir
 $ git clone https://github.com/riscv/riscv-gnu-toolchain.git
 ```
 その後のセットアップは riscv-gnu-toolchain の README.md
-(https://github.com/riscv/riscv-gnu-toolchain/blob/master/README.md)に従うのが公式な方法ですが
+(https://github.com/riscv/riscv-gnu-toolchain/blob/master/README.md) に従うのが公式な方法ですが
 submodule の clone に時間がかかるため, すぐにこのレポジトリを試したい,
 riscv-gnu-toolchain の git 操作が不要という場合は riscv-step-by-step
 内のスクリプトを使用して submodule のダウンロードを行います.
@@ -34,7 +49,7 @@ $ cd /path/to/dir/riscv-gnu-toolchain
 $ sh /path/to/dir/riscv-step-by-step/get-submodule-zips.sh
 ```
 その後のビルド方法も riscv-gnu-toolchain の README.md
-(https://github.com/riscv/riscv-gnu-toolchain/blob/master/README.md)に従うのが公式な方法ですが,
+(https://github.com/riscv/riscv-gnu-toolchain/blob/master/README.md) に従うのが公式な方法ですが,
 RV32 のみを使用する場合は以下を実行します.
 ```bash
 $ cd /path/to/dir/riscv-gnu-toolchain
