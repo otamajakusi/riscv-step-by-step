@@ -25,6 +25,7 @@ apt-get が使用できる環境では事前に以下のコマンドで必要な
 $ sudo apt-get update
 $ sudo apt-get install -y wget unzip git
 $ sudo apt-get install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
+$ sudo apt-get intall -y python pkg-config libglib2.0-dev libpixman-1-dev
 ```
 
 ### riscv-step-by-stepセットアップ
@@ -87,7 +88,7 @@ $ export PATH=/opt/qemu/bin:$PATH
 $ cd /path/to/dir/riscv-step-by-step
 $ git submodle update --init
 $ cd riscv-probe
-$ make
+$ make CROSS_COMPILE=riscv32-unknown-elf-
 ```
 
 ## Hello World!
