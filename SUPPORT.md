@@ -13,18 +13,7 @@ PMP(=Physical Memory Protection) の実装は完全でないことが分かり�
 https://github.com/otamajakusi/riscv-step-by-step/issues/6
 
 ### 正誤情報
-1. 50ページ setup_pmp. size に 2 のべき乗を渡します.  
-   誤)
-   ```
-   setup_pmp(pa, 0x2000);
-   ```
-   正)
-   ```
-   setup_pmp(pa,          0x1000);
-   setup_pmp(pa + 0x1000, 0x1000);
-   ```
-
-2. 4ページ セットアップ  
+1. 4ページ セットアップ  
    追加)
    ```
    Macで実行する場合, docker 環境上での実行を推奨します.
@@ -41,7 +30,7 @@ https://github.com/otamajakusi/riscv-step-by-step/issues/6
    ```
    steps/1/README.md に事前準備とMacで実行する場合を記載しています.
 
-3. 5ページ riscv-probe make.  
+1. 5ページ riscv-probe make.  
    誤)
    ```
    $ cd /path/to/dir/riscv-step-by-step
