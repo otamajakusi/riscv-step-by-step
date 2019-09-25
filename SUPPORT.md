@@ -37,5 +37,22 @@ https://github.com/otamajakusi/riscv-step-by-step/issues/6
    $ sudo apt-get update
    $ sudo apt-get install -y wget unzip git
    $ sudo apt-get install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex  texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
+   $ sudo apt-get intall -y python pkg-config libglib2.0-dev libpixman-1-dev
    ```
    steps/1/README.md に事前準備とMacで実行する場合を記載しています.
+
+3. 5ページ riscv-probe make.  
+   誤)
+   ```
+   $ cd /path/to/dir/riscv-step-by-step
+   $ git submodle update --init
+   $ cd riscv-probe
+   $ make
+   ```
+   正)
+   ```
+   $ cd /path/to/dir/riscv-step-by-step
+   $ git submodle update --init
+   $ cd riscv-probe
+   $ make CROSS_COMPILE=riscv32-unknown-elf- 
+   ```
