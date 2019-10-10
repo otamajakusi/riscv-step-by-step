@@ -79,17 +79,6 @@ static void handle_intr(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
     if (mcause == intr_m_timer) {
         handle_timer_interrupt();
-        uint32_t insn;
-        task_t *curr = get_current_task();
-        // Note: qemu bug?
-        // Interrupt on AMO, especially sc.w, instruction causes unintended
-        // behavior after resuming from the instruction.
-        // So in this case, return immediately not to switch the context.
-        if (curr && load_32_from_user(curr, mepc, &insn) == 0) {
-            if ((insn & 0x7f) == 0x2f) { // AMO opcode[6:0] = b0101111
-                return; // return immediately not to switch context
-            }
-        }
         schedule(regs, mepc);
         return;
     } else if (mcause == intr_m_external) {
