@@ -31,4 +31,4 @@ $(target): $(objs)
 
 .PHONY: clean
 clean:
-	$(RM) $(objs) $(target)
+	$(RM) $(objs) $(target) $(deps)
