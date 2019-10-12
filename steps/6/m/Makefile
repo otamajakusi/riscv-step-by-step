@@ -3,7 +3,7 @@ target = m.elf
 objs = u.elf.o
 include ../../../mk/common.mk
 include ../../../mk/m.mk
-LDFLAGS += $(MAKEFILE_DIR)../riscv-probe/build/obj/rv32imac/env/qemu-sifive_u/setup.o
+LDFLAGS += $(MAKEFILE_DIR)../riscv-probe/build/obj/rv32imac/env/virt/setup.o
 
 ../u/u.elf:
 	$(MAKE) -C ../u

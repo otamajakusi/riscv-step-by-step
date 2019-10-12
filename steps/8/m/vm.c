@@ -30,6 +30,7 @@
 void set_satp(const union sv32_pte* ptes1st)
 {
     write_csr(satp, (SPTBR_MODE_SV32 << 31u) | PAGE_NUM(ptes1st));
+    asm volatile ("sfence.vma" : : : "memory");
 }
 
 void init_pte(union sv32_pte* ptes1st, union sv32_pte* ptes2nd)
