@@ -1,4 +1,8 @@
-LDFLAGS += -L$(MAKEFILE_DIR)../riscv-probe/env/virt -Tdefault.lds \
+LDFLAGS += -L$(MAKEFILE_DIR)../riscv-probe/env/virt -Tdefault.lds
+QEMU_VERSION = $(shell qemu-system-riscv32 -version | awk /^QEMU/)
+ifneq ($(QEMU_VERSION), QEMU emulator version 3.1.0 (v3.1.0-rc1-207-g3cc4afdb71-dirty))
+CFLAGS += -DDISABLE_PMP=1
+endif
 
 .PHONY: run
 run:

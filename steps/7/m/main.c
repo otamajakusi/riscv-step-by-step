@@ -56,11 +56,13 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
  */
 static void setup_pmp()
 {
+#ifndef DISABLE_PMP
     uint32_t addr = USER_PA;
     uint32_t len = 0x8000u;
     uint32_t pmpaddr = (addr >> 2) | ((len >> 3) - 1);
     write_csr(pmpaddr0, pmpaddr);
     write_csr(pmpcfg0, PMP_NAPOT | PMP_X | PMP_W | PMP_R);
+#endif
 }
 
 int main()

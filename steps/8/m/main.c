@@ -84,6 +84,7 @@ static void handler(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
  */
 static void setup_pmp(uint32_t addr, uint32_t len)
 {
+#ifndef DISABLE_PMP
     uint32_t pmpaddr = (addr >> 2) | ((len >> 3) - 1);
     // find pmp_off
     for (size_t i = 0; i < PMPCFG_COUNT; i ++) {
@@ -99,6 +100,9 @@ static void setup_pmp(uint32_t addr, uint32_t len)
         }
     }
     printf("error: pmp entry off not found\n");
+#else
+    (void)addr; (void)len;
+#endif
 }
 
 int main()
