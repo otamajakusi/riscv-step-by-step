@@ -85,7 +85,7 @@ $ export PATH=/opt/qemu/bin:$PATH
 ### riscv-probeセットアップ
 ```bash
 $ cd /path/to/dir/riscv-step-by-step
-$ git submodle update --init
+$ git submodule update --init
 $ cd riscv-probe
 $ make CROSS_COMPILE=riscv32-unknown-elf-
 ```
