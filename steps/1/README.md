@@ -25,7 +25,7 @@ apt-get が使用できる環境では事前に以下のコマンドで必要な
 $ sudo apt-get update
 $ sudo apt-get install -y wget unzip git
 $ sudo apt-get install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
-$ sudo apt-get intall -y python pkg-config libglib2.0-dev libpixman-1-dev
+$ sudo apt-get install -y python pkg-config libglib2.0-dev libpixman-1-dev
 ```
 
 ### riscv-step-by-stepセットアップ
@@ -38,7 +38,7 @@ clone と同時に v1.0 を checkout します.
 ### riscv-gnu-toolchainセットアップ
 ```bash
 $ cd /path/to/dir
-$ git clone https://github.com/riscv/riscv-gnu-toolchain.git
+$ git clone --depth 1 https://github.com/riscv/riscv-gnu-toolchain.git
 ```
 その後のセットアップは riscv-gnu-toolchain の README.md
 (https://github.com/riscv/riscv-gnu-toolchain/blob/master/README.md) に従うのが公式な方法ですが
@@ -69,9 +69,8 @@ $ export PATH=/opt/rv32gc/bin:$PATH
 QEMU も RV32 のみを使用するため32ビットのビルドのみを行います.
 ```bash
 $ cd /path/to/dir
-$ git clone -n https://github.com/riscv/riscv-qemu.git
+$ git clone --depth 1 -b riscv-qemu-3.1 https://github.com/riscv/riscv-qemu.git
 $ cd riscv-qemu
-$ git checkout riscv-qemu-3.1
 $ mkdir build
 $ cd build
 $ ../configure --target-list=riscv32-softmmu --prefix=/opt/qemu
