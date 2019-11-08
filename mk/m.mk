@@ -4,6 +4,9 @@ ifneq ($(QEMU_VERSION), QEMU emulator version 3.1.0 (v3.1.0-rc1-207-g3cc4afdb71-
 CFLAGS += -DDISABLE_PMP=1
 endif
 
+%.hex : %.elf
+	$(OBJCOPY) -O ihex $< $@
+
 .PHONY: run
 run:
 	qemu-system-riscv32 -nographic -machine virt -kernel $(target)

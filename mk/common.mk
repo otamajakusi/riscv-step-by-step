@@ -18,7 +18,7 @@ deps += $(patsubst %S,%d,$(filter %.S,$(srcs)))
 .PHONY: all
 all: $(objs) $(target)
 
-$(target): $(objs)
+%.elf : $(objs)
 	$(CC) $(LDFLAGS) $^ -lfemto -o $@
 
 %.o : %.S
