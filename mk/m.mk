@@ -13,6 +13,11 @@ endif
 %.hex : %.elf
 	$(OBJCOPY) -O ihex $< $@
 
+%.bin : %.elf
+	$(OBJCOPY) -O binary $< $@
+
+target_elf = $(filter %.elf,$(target))
+
 target_elf = $(filter %.elf,$(target))
 target_hex = $(filter %.hex,$(target))
 
@@ -29,7 +34,7 @@ run-gdb:
 # NOTE: currently only HiFive1-RevB is supported
 .PHONY: upload
 upload:
-	echo -e "loadfile $(target_hex)\nrnh\nexit" | \
+	printf "loadfile $(target_hex)\nrnh\nexit\n" | \
 		$(JLINK) -device FE310 -if JTAG -speed 4000 -jtagconf -1,-1 -autoconnect 1
 
 .PHONY: stop

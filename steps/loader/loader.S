@@ -1,12 +1,24 @@
 .section .text.init,"ax",@progbits
 
 RAM_START = 0x80000000
+GPIO_BASE = 0x10012000
 
 .global _binary_start
 .global _binary_end
 
 .global _start
 _start:
+    # gpio
+    la  a0, GPIO_BASE
+    lw  t0, 60(a0)
+    la  t1, ~0x30000
+    and t0, t0, t1
+    sw  t0, 60(a0)
+    lw  t0, 56(a0)
+    la  t1, 0x30000
+    or t0, t0,t1
+    sw  t0, 56(a0)
+
     la  a0, _binary_start
     la  a1, _binary_end 
     la  a2, RAM_START
