@@ -30,7 +30,7 @@ run-gdb:
 .PHONY: upload
 upload:
 	echo -e "loadfile $(target_hex)\nrnh\nexit" | \
-		$(JLINK) -device FE310 -if JTAG -speed 4000 -jtagconf -1,-1, -autoconnect 1
+		$(JLINK) -device FE310 -if JTAG -speed 4000 -jtagconf -1,-1 -autoconnect 1
 
 .PHONY: stop
 stop:

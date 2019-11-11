@@ -11,4 +11,4 @@ m.bin.o: m.bin
 		--redefine-sym _binary_m_bin_size=_binary_size
 
 loader.elf: loader.o m.bin.o
-	$(CC) $^ -o $@ -Wl,-Ttext=0x20010000 -Wl,--nmagic -nostartfiles -static
+	$(CC) $^ -o $@ -L. -Tloader.ld -Wl,--nmagic -nostartfiles -static
