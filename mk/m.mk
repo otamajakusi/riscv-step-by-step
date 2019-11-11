@@ -4,22 +4,7 @@ ifneq ($(QEMU_VERSION), QEMU emulator version 3.1.0 (v3.1.0-rc1-207-g3cc4afdb71-
 CFLAGS += -DDISABLE_PMP=1
 endif
 
-ifneq ($(shell uname -r | awk /Microsoft$$/), "")
-JLINK = JLink.exe
-else
-JLINK = JLinkExe
-endif
-
-%.hex : %.elf
-	$(OBJCOPY) -O ihex $< $@
-
-%.bin : %.elf
-	$(OBJCOPY) -O binary $< $@
-
 target_elf = $(filter %.elf,$(target))
-
-target_elf = $(filter %.elf,$(target))
-target_hex = $(filter %.hex,$(target))
 
 .PHONY: run
 run:
@@ -30,12 +15,6 @@ run:
 .PHONY: run-gdb
 run-gdb:
 	qemu-system-riscv32 -nographic -machine virt -kernel $(target_elf) -s -S
-
-# NOTE: currently only HiFive1-RevB is supported
-.PHONY: upload
-upload:
-	printf "loadfile $(target_hex)\nrnh\nexit\n" | \
-		$(JLINK) -device FE310 -if JTAG -speed 4000 -jtagconf -1,-1 -autoconnect 1
 
 .PHONY: stop
 stop:

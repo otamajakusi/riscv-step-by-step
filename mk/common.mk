@@ -16,7 +16,7 @@ deps  = $(patsubst %c,%d,$(filter %.c,$(srcs)))
 deps += $(patsubst %S,%d,$(filter %.S,$(srcs)))
 
 .PHONY: all
-all: $(objs) $(target)
+all: $(objs) $(target) $(loader)
 
 %.elf : $(objs)
 	$(CC) $(LDFLAGS) $^ -lfemto -o $@
@@ -31,4 +31,4 @@ all: $(objs) $(target)
 
 .PHONY: clean
 clean:
-	$(RM) $(objs) $(target) $(deps)
+	$(RM) $(objs) $(target) $(deps) $(loader)

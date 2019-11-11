@@ -3,3 +3,6 @@
 *.elf
 *.d
 *.hex
+*.bin
+loader
+tags
