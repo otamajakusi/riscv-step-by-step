@@ -1,3 +1,5 @@
+[技術書典7 RISC-V step-by-step](https://drive.google.com/drive/folders/1SlWzJFh3hjbNpAo8r3nFaWU7ueNYu2G3)
+
 [技術書典7 RISC-V step-by-step サポート情報はこちら](../v1.0/SUPPORT.md)
 # はじめに
 小さなオリジナルの kernel を実装しながら RISC-V
